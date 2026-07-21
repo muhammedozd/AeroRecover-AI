@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual Environment
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Flight datasets
+data/raw/
+
+# Trained models (ileride oluşacak)
+models/*.pkl
+models/*.joblib
+
+# Environment variables (ileride kullanacağız)
+.env
