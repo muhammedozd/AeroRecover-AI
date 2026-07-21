@@ -6,7 +6,7 @@ import pandas as pd
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-FLIGHTS_CSV_PATH = PROJECT_ROOT / "data" / "raw" / "T_ONTIME_REPORTING.csv"
+FLIGHTS_CSV_PATH = PROJECT_ROOT / "data" / "raw" / "T_ONTIME_REPORTING (1).csv"
 
 
 def load_flights(csv_path: Path = FLIGHTS_CSV_PATH) -> pd.DataFrame:
