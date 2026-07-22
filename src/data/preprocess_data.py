@@ -52,6 +52,9 @@ def preprocess_data():
         dtype=int,
     )
 
+    # Kodlama sonrasında tüm özellikleri daha az bellek kullanan float32'ye çevir.
+    X_encoded = X_encoded.astype("float32")
+
     print("Encoding öncesi X boyutu:", X.shape)
     print("Encoding sonrası X boyutu:", X_encoded.shape)
     print(X_encoded.head())
