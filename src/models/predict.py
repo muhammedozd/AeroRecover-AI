@@ -4,7 +4,11 @@ from src.data.preprocess_data import preprocess_data
 import joblib
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
-
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    classification_report
+)
 
 # Projenin ana klasörünü bulur
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
