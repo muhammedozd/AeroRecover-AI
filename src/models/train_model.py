@@ -14,7 +14,8 @@ def train_model() -> LogisticRegression:
     """Lojistik regresyon modelini eğit ve diske kaydet."""
     X_train, X_test, y_train, _ = preprocess_data()
 
-    model = LogisticRegression(max_iter=1000)
+    model = LogisticRegression(max_iter=1000,
+                               class_weight="balanced")
     model.fit(X_train, y_train)
 
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
