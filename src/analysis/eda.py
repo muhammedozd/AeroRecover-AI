@@ -22,35 +22,47 @@ def main():
         * 100
     )
 
-    # Aylara göre gecikme oranı
-    monthly_delay = (
-    df.groupby("MONTH")["ARR_DEL15"]
+    daily_delay = (
+    df.groupby("DAY_OF_WEEK")["ARR_DEL15"]
     .mean()
     * 100
 )
 
-    plt.figure(figsize=(10, 5))
+    print("\nHaftanın Günlerine Göre Gecikme Oranları (%):")
+    print(daily_delay)
+    plt.figure(figsize=(9, 5))
 
     plt.bar(
-    monthly_delay.index,
-    monthly_delay.values
+    daily_delay.index,
+    daily_delay.values
 )
 
-    plt.title("Aylara Göre Gecikme Oranı")
-    plt.xlabel("Ay")
+    plt.title("Haftanın Günlerine Göre Gecikme Oranı")
+    plt.xlabel("Haftanın Günü")
     plt.ylabel("Gecikme Oranı (%)")
 
-    plt.xticks(range(1, 13))
+    plt.xticks(
+    range(1, 8),
+    [
+        "Pazartesi",
+        "Salı",
+        "Çarşamba",
+        "Perşembe",
+        "Cuma",
+        "Cumartesi",
+        "Pazar",
+    ],
+    rotation=30
+)
 
     plt.grid(axis="y", linestyle="--", alpha=0.5)
-
+    plt.tight_layout()
     plt.show()
-
-    print("\nAylara Göre Gecikme Oranları (%):")
-    print(monthly_delay)
 
     print("\nGecikme Yüzdeleri:")
     print(delay_percentages)
+    print(df["MONTH"].unique())
+    print(df["MONTH"].value_counts().sort_index())  
 
 
 if __name__ == "__main__":
