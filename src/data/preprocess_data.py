@@ -46,27 +46,21 @@ def preprocess_data():
     print("Kategorik sütunlar:")
     print(categorical_columns.tolist())
 
-    X_encoded = pd.get_dummies(
-        X,
-        columns=categorical_columns,
-        dtype=int,
-    )
+    X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            y,
+            test_size=0.20,
+            random_state=42,
+            stratify=y,
+        )
 
     # Kodlama sonrasında tüm özellikleri daha az bellek kullanan float32'ye çevir.
-    X_encoded = X_encoded.astype("float32")
 
-    print("Encoding öncesi X boyutu:", X.shape)
-    print("Encoding sonrası X boyutu:", X_encoded.shape)
-    print(X_encoded.head())
-    print(X_encoded.dtypes)
+    print("Ham X boyutu:", X.shape)
+    print("X_train boyutu:", X_train.shape)
+    print("X_test boyutu:", X_test.shape)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_encoded,
-        y,
-        test_size=0.20,
-        random_state=42,
-        stratify=y,
-    )
+    
 
     print("X_train boyutu:", X_train.shape)
     print("X_test boyutu:", X_test.shape)
