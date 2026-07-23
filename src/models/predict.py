@@ -24,6 +24,15 @@ def load_model():
     X_train, X_test, y_train, y_test = preprocess_data()
     tahminler = model.predict(X_test)
 
+    tek_ucus = X_test.iloc[[0]]
+    tek_ucus_tahmini = model.predict(tek_ucus)
+    print("\nTek uçuş tahmini:")
+
+    if tek_ucus_tahmini[0] == 1:
+        print("Sonuç: Uçuşun gecikmesi bekleniyor.")
+    else:
+        print("Sonuç: Uçuşun gecikmesi beklenmiyor.")
+
     accuracy = accuracy_score(y_test, tahminler)
     print("\nİlk 5 tahmin:", tahminler[:5])
     print(f"\nAccuracy: {accuracy:.2f}")
