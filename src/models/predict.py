@@ -26,12 +26,19 @@ def load_model():
 
     tek_ucus = X_test.iloc[[0]]
     tek_ucus_tahmini = model.predict(tek_ucus)
+    gercek_sonuc = y_test.iloc[0]
+
     print("\nTek uçuş tahmini:")
 
     if tek_ucus_tahmini[0] == 1:
         print("Sonuç: Uçuşun gecikmesi bekleniyor.")
     else:
         print("Sonuç: Uçuşun gecikmesi beklenmiyor.")
+
+    if gercek_sonuc == 1:
+        print("Gerçek sonuç: Uçuş gecikmiş.")
+    else:
+         print("Gerçek sonuç: Uçuş gecikmemiş.")
 
     accuracy = accuracy_score(y_test, tahminler)
     print("\nİlk 5 tahmin:", tahminler[:5])
