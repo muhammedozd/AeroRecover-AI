@@ -66,12 +66,31 @@ def load_model():
 
     tahmin = model.predict(yeni_ucus)
 
+    olasiliklar = model.predict_proba(yeni_ucus)
+
+    print(
+    f"Gecikmeme olasiligi: %{olasiliklar[0][0] * 100:.2f}"
+)
+
+    print(
+    f"Gecikme olasiligi: %{olasiliklar[0][1] * 100:.2f}"
+)
+
     print("\n===== TAHMIN SONUCU =====")
 
     if tahmin[0] == 1:
         print("Ucusun gecikmesi bekleniyor.")
     else:
         print("Ucusun zamaninda varmasi bekleniyor.")
+    
+    gercek_sonuc = int(
+    input("\nUcus gercekte gecikti mi? (0=Hayir, 1=Evet): ")
+)
+
+    if tahmin[0] == gercek_sonuc:
+        print("Tahmin dogru.")
+    else:
+        print("Tahmin yanlis.")
 
 
 
