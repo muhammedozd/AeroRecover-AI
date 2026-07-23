@@ -60,7 +60,7 @@ def preprocess_data():
     print("X_train boyutu:", X_train.shape)
     print("X_test boyutu:", X_test.shape)
 
-    
+    print(X.columns.tolist())
 
     print("X_train boyutu:", X_train.shape)
     print("X_test boyutu:", X_test.shape)

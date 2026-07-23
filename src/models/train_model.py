@@ -16,7 +16,7 @@ MODEL_PATH = PROJECT_ROOT / "models" / "logistic_regression.pkl"
 def train_model() -> Pipeline:
     """Pipeline modelini eğit ve diske kaydet."""
 
-    X_train, X_test, y_train, _ = preprocess_data()
+    X_train, X_test, y_train, y_test = preprocess_data()
 
     categorical_columns = [
         "OP_UNIQUE_CARRIER",
