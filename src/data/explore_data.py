@@ -26,4 +26,4 @@ print(df["ARR_DEL15"].value_counts(dropna=False))
 print("\nHEDEF DEĞİŞKEN YÜZDELERİ")
 print(df["ARR_DEL15"].value_counts(normalize=True, dropna=False) * 100)
 
-print(df[df["ARR_DEL15"]==1].head(1000))
+#print(df[df["ARR_DEL15"]==1].head(1000))

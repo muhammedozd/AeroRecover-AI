@@ -2,7 +2,7 @@ from pathlib import Path
 
 import joblib
 from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics import confusion_matrix, classification_report
@@ -36,16 +36,18 @@ def train_model() -> Pipeline:
     )
 
     model = Pipeline(
-        steps=[
-            ("preprocessor", preprocessor),
-            (
-                "classifier",
-                LogisticRegression(
-                    max_iter=1000,
-                ),
+    steps=[
+        ("preprocessor", preprocessor),
+        (
+            "classifier",
+            RandomForestClassifier(
+                n_estimators=100,
+                random_state=42,
+                n_jobs=-1,
             ),
-        ]
-    )
+        ),
+    ]
+)
 
     model.fit(X_train, y_train)
 

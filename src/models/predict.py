@@ -15,7 +15,7 @@ from sklearn.metrics import (
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 # Kaydedilmiş modelin yolu
-MODEL_PATH = PROJECT_ROOT / "models" / "logistic_regression.pkl"
+MODEL_PATH = PROJECT_ROOT / "models" / "random_forest.pkl"
 
 
 def load_model():
