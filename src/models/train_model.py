@@ -2,7 +2,7 @@ from pathlib import Path
 
 import joblib
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics import confusion_matrix, classification_report
@@ -10,7 +10,7 @@ from src.data.preprocess_data import preprocess_data
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-MODEL_PATH = PROJECT_ROOT / "models" / "logistic_regression.pkl"
+MODEL_PATH = PROJECT_ROOT / "models" / "xgboost_model.pkl"
 
 
 def train_model() -> Pipeline:
@@ -40,10 +40,14 @@ def train_model() -> Pipeline:
         ("preprocessor", preprocessor),
         (
             "classifier",
-            RandomForestClassifier(
+            XGBClassifier(
                 n_estimators=100,
-                random_state=42,
-                n_jobs=-1,
+                learning_rate=0.1,
+                max_depth=6,
+                scale_pos_weight=3.52,
+               random_state=42,
+               eval_metric="logloss",
+                
             ),
         ),
     ]
