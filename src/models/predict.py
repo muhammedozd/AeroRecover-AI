@@ -4,6 +4,7 @@ from src.data.preprocess_data import preprocess_data
 import joblib
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
+
 from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
@@ -24,13 +25,17 @@ def load_model():
     tahminler = model.predict(X_test)
 
     accuracy = accuracy_score(y_test, tahminler)
-    print("İlk 5 tahmin:", tahminler[:5])
-    print(f"Accuracy: {accuracy:.2f}")
+    print("\nİlk 5 tahmin:", tahminler[:5])
+    print(f"\nAccuracy: {accuracy:.2f}")
 
     matrix = confusion_matrix(y_test, tahminler)
 
-    print("Confusion Matrix:")
+    print("\nConfusion Matrix:")
     print(matrix)
+
+    report = classification_report(y_test, tahminler)
+    print("\nClassification Report:")
+    print(report)
 
     
     print(f"Model başarıyla yüklendi: {MODEL_PATH}")
