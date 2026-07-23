@@ -5,7 +5,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
-
+from sklearn.metrics import confusion_matrix, classification_report
 from src.data.preprocess_data import preprocess_data
 
 
@@ -42,7 +42,6 @@ def train_model() -> Pipeline:
                 "classifier",
                 LogisticRegression(
                     max_iter=1000,
-                    class_weight="balanced",
                 ),
             ),
         ]
@@ -57,8 +56,20 @@ def train_model() -> Pipeline:
 
     y_pred = model.predict(X_test)
 
+    print("\nTahmin edilen gecikmeyen ucus:", (y_pred == 0).sum())
+    print("Tahmin edilen geciken ucus:", (y_pred == 1).sum())
+
+    print("\nGercekte gecikmeyen ucus:", (y_test == 0).sum())
+    print("Gercekte geciken ucus:", (y_test == 1).sum())
+
     print("İlk 10 tahmin:")
     print(y_pred[:10])
+    print("\nConfusion Matrix:")
+    print(confusion_matrix(y_test, y_pred))
+    print(confusion_matrix(y_test, y_pred))
+
+    print("\nClassification Report:")
+    print(classification_report(y_test, y_pred))
 
     return model
 
