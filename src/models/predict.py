@@ -98,3 +98,4 @@ if __name__ == "__main__":
     flight = get_flight_information()
     prediction, delay_probability = predict_delay(model, flight)
     show_result(prediction, delay_probability)
+    
