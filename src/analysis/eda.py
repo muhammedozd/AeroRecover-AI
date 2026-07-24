@@ -1,3 +1,7 @@
+from operator import lt
+
+from numpy import rint
+
 from src.data.load_flights import load_flights
 import matplotlib.pyplot as plt
 
@@ -64,6 +68,32 @@ def main():
     print(df["MONTH"].unique())
     print(df["MONTH"].value_counts().sort_index())  
 
+    carrier_delay = (
+    df.groupby("OP_UNIQUE_CARRIER")["ARR_DEL15"]
+    .mean()
+    * 100
+)
+
+    carrier_delay = carrier_delay.sort_values(ascending=False)
+
+    print("\nHavayolu Şirketlerine Göre Gecikme Oranı (%):")
+    print(carrier_delay)
+    plt.figure(figsize=(12, 6))
+
+    plt.bar(
+    carrier_delay.index,
+    carrier_delay.values
+)
+
+    plt.title("Havayolu Şirketlerine Göre Gecikme Oranı")
+    plt.xlabel("Havayolu")
+    plt.ylabel("Gecikme Oranı (%)")
+
+    plt.grid(axis="y", linestyle="--", alpha=0.5)
+
+    plt.tight_layout()
+
+    plt.show()
 
 if __name__ == "__main__":
     main()
