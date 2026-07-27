@@ -2,29 +2,31 @@
 __pycache__/
 *.py[cod]
 *.pyo
-
-# Virtual Environment
 .venv/
 venv/
 
-# Jupyter
+# Notebooks and tooling
 .ipynb_checkpoints/
+.pytest_cache/
 
 # IDE
 .vscode/
 
-# macOS
+# Operating systems
 .DS_Store
-
-# Windows
 Thumbs.db
 
-# Flight datasets
-data/raw/
-
-# Trained models (ileride oluşacak)
+# Generated project artifacts
+data/raw/*
+data/interim/*
+data/processed/*
 models/*.pkl
 models/*.joblib
+reports/figures/*
+reports/tables/*
 
-# Environment variables (ileride kullanacağız)
+# Keep directory placeholders
+!.gitkeep
+
+# Environment variables
 .env

@@ -32,6 +32,10 @@ def preprocess_data():
         "TAIL_NUM",
         "ORIGIN_CITY_NAME",
         "DEST_CITY_NAME",
+        "TAXI_OUT",
+        "WHEELS_OFF",
+        "WHEELS_ON",
+        "TAXI_IN",
     ]
     df = df.drop(columns=columns_to_drop)
 
