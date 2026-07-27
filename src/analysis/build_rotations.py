@@ -99,9 +99,40 @@ def build_rotations():
     rotation_df = rotation_df[
     rotation_df["VALID_ROTATION"]
 ].copy()
+
+    rotation_df["PREV_DELAYED"] = (
+    rotation_df["PREV_ARR_DELAY"] >= 15
+).astype(int)
+
+    rotation_df["TURNAROUND_GROUP"] = pd.cut(
+    rotation_df["ACTUAL_TURNAROUND"],
+    bins=[0, 30, 60, 90, 120, 240],
+    labels=[
+        "0-30",
+        "31-60",
+        "61-90",
+        "91-120",
+        "120-240"
+    ]
+)
+    rotation_df["DELAYED"] = (
+    rotation_df["DEP_DELAY"] >= 15
+).astype(int)
     
-    print(rotation_df["ACTUAL_TURNAROUND"].describe())
-    print(rotation_df["ACTUAL_TURNAROUND"].quantile([0.90, 0.95, 0.99]))
+    turnaround_analysis = (
+    rotation_df
+    .groupby("TURNAROUND_GROUP", observed=True)["DELAYED"]
+    .agg(["count", "mean"])
+
+)
+    turnaround_analysis["delay_rate_percent"] = (
+    turnaround_analysis["mean"] * 100
+)
+    print(turnaround_analysis)
+
+    
+    #print(rotation_df["ACTUAL_TURNAROUND"].describe())
+    #print(rotation_df["ACTUAL_TURNAROUND"].quantile([0.90, 0.95, 0.99]))
 
     #print("Rotasyon verisi boyutu:", rotation_df.shape)
     #print(rotation_df.head())
