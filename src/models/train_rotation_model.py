@@ -160,3 +160,15 @@ if __name__ == "__main__":
     pipeline.fit(X_train, y_train)
     print("Model eğitimi başarıyla tamamlandı.")
 
+    MODEL_PATH.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    joblib.dump(
+        pipeline,
+        MODEL_PATH
+    )
+
+    print(f"Model kaydedildi: {MODEL_PATH}")
+

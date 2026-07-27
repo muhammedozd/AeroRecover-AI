@@ -1,8 +1,28 @@
 from src.data.load_flights import load_flights
 import pandas as pd
 
+from pathlib import Path
+
+# ==========================================
+# PROJECT PATHS
+# ==========================================
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+OUTPUT_PATH = (
+    PROJECT_ROOT
+    / "data"
+    / "processed"
+    / "rotation_dataset.csv"
+
+)
+OUTPUT_PATH.parent.mkdir(
+    parents=True,
+    exist_ok=True
+)
 def build_rotations():
     df = load_flights()
+
 
     rotation_columns = [
         "FL_DATE",
@@ -179,6 +199,19 @@ def build_rotations():
     #print("İptal edilen uçuş sayisi:", rotation_df["CANCELLED"].sum())
     #print("Yönlendirilen uçuş sayisi:", rotation_df["DIVERTED"].sum())
 
-
+    return rotation_df
 if __name__ == "__main__":
-    build_rotations()
+    rotation_df = build_rotations()
+
+
+    rotation_df.to_csv(
+        OUTPUT_PATH,
+        index=False
+    )
+
+
+    print("=" * 50)
+    print("Rotation dataset successfully created.")
+    print(f"Saved to: {OUTPUT_PATH}")
+    print(f"Total samples: {len(rotation_df):,}")
+    print("=" * 50)
