@@ -103,6 +103,7 @@ def build_rotations():
     rotation_df["PREV_DELAYED"] = (
     rotation_df["PREV_ARR_DELAY"] >= 15
 ).astype(int)
+    
 
     rotation_df["TURNAROUND_GROUP"] = pd.cut(
     rotation_df["ACTUAL_TURNAROUND"],
@@ -128,9 +129,45 @@ def build_rotations():
     turnaround_analysis["delay_rate_percent"] = (
     turnaround_analysis["mean"] * 100
 )
-    print(turnaround_analysis)
-
+    long_turnaround_df = rotation_df[
+    rotation_df["TURNAROUND_GROUP"] == "120-240"
+]
+    carrier_analysis = (
+    long_turnaround_df
+    .groupby("OP_UNIQUE_CARRIER")["DELAYED"]
+    .agg(["count", "mean"])
+    .sort_values("count", ascending=False)
+)
+    carrier_analysis["delay_rate_percent"] = (
+    carrier_analysis["mean"] * 100
+)
+    rotation_df["RECOVERY_MARGIN"] = (
+        rotation_df["ACTUAL_TURNAROUND"]
+        - rotation_df["PREV_ARR_DELAY"]
+    )
+    rotation_df["RECOVERY_GROUP"] = pd.cut(
+        rotation_df["RECOVERY_MARGIN"],
+        bins=[-2000, 0, 30, 60, 90, 300],
+        labels=[
+            "<0",
+            "0-30",
+            "31-60",
+            "61-90",
+            ">90"
+        ]
+        )
+    recovery_analysis = (
+        rotation_df
+        .groupby("RECOVERY_GROUP", observed=True)["DELAYED"]
+        .agg(["count", "mean"])
+    )
     
+    recovery_analysis["delay_rate_percent"] = (
+        recovery_analysis["mean"] * 100
+    )
+    
+    print(recovery_analysis)
+        
     #print(rotation_df["ACTUAL_TURNAROUND"].describe())
     #print(rotation_df["ACTUAL_TURNAROUND"].quantile([0.90, 0.95, 0.99]))
 
