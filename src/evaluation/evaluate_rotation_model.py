@@ -27,7 +27,7 @@ DATA_PATH = (
 MODEL_PATH = (
     PROJECT_ROOT
     / "models"
-    / "xgboost_rotation.pkl"
+    / "xgboost_propagation_classifier.pkl"
 )
 
 def load_dataset():
@@ -41,17 +41,20 @@ def load_dataset():
 
 def prepare_test_data(df):
     categorical_features = [
-        "OP_UNIQUE_CARRIER",
-        "ORIGIN",
-        "DEST"
+        "PREV_DEST",
+        "PREV_DELAY_LEVEL"
     ]
 
     numerical_features = [
-        "CRS_DEP_MIN",
-        "DISTANCE",
+        "ROTATION_POSITION",
         "PREV_ARR_DELAY",
-        "ACTUAL_TURNAROUND",
-        "RECOVERY_MARGIN",
+        "PREV_ARR_MIN",
+        "PREV_CRS_ARR_MIN",
+        "PLANNED_TURNAROUND",
+        "TURN_BUFFER",
+        "PREV_DELAY_RATIO",
+        "HAS_BUFFER",
+        "IS_SHORT_TURN",
         "PREV_DELAYED"
     ]
 
@@ -60,7 +63,7 @@ def prepare_test_data(df):
         + numerical_features
     )
 
-    target_column = "DELAYED"
+    target_column = "IS_DELAY_PROPAGATED"
 
     X = df[feature_columns]
     y = df[target_column]
@@ -69,7 +72,8 @@ def prepare_test_data(df):
         X,
         y,
         test_size=0.2,
-        random_state=42
+        random_state=42,
+        stratify=y
     )
 
     return X_test, y_test

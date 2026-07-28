@@ -146,6 +146,10 @@ def build_rotations():
     rotation_df["HAS_BUFFER"] = (
     rotation_df["TURN_BUFFER"] > 0
 ).astype(int)
+
+
+
+    
     rotation_df["PREV_DELAY_LEVEL"] = pd.cut(
     rotation_df["PREV_ARR_DELAY"],
     bins=[-1000, -1, 14, 29, 59, 1000],

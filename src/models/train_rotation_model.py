@@ -26,7 +26,7 @@ DATA_PATH = (
 MODEL_PATH = (
     PROJECT_ROOT
     / "models"
-    / "xgboost_rotation.pkl"
+    / "xgboost_propagation_classifier.pkl"
 )
 
 def load_dataset():
@@ -45,25 +45,28 @@ def load_dataset():
 
 def prepare_features(df):
     """
-    Select model features and target variable.
+    Select features and target for delay propagation prediction.
     """
 
     categorical_features = [
-        "OP_UNIQUE_CARRIER",
-        "ORIGIN",
-        "DEST"
+        "PREV_DEST",
+        "PREV_DELAY_LEVEL"
     ]
 
     numerical_features = [
-        "CRS_DEP_MIN",
-        "DISTANCE",
+        "ROTATION_POSITION",
         "PREV_ARR_DELAY",
-        "ACTUAL_TURNAROUND",
-        "RECOVERY_MARGIN",
+        "PREV_ARR_MIN",
+        "PREV_CRS_ARR_MIN",
+        "PLANNED_TURNAROUND",
+        "TURN_BUFFER",
+        "PREV_DELAY_RATIO",
+        "HAS_BUFFER",
+        "IS_SHORT_TURN",
         "PREV_DELAYED"
     ]
-    target_column = "DELAYED"
 
+    target_column = "IS_DELAY_PROPAGATED"
 
     feature_columns = (
         categorical_features
@@ -73,13 +76,28 @@ def prepare_features(df):
     X = df[feature_columns]
     y = df[target_column]
 
-
     return (
         X,
         y,
         categorical_features,
         numerical_features
     )
+
+
+    print("\nFeature kontrolü")
+    print("-" * 50)
+
+    print("X shape:", X.shape)
+    print("y shape:", y.shape)
+
+    print("\nKullanılan feature'lar:")
+    print(X.columns.tolist())
+
+    print("\nTarget dağılımı:")
+    print(y.value_counts())
+
+    print("\nTarget oranı:")
+    print(y.value_counts(normalize=True))
 
 
 def build_preprocessor(categorical_features, numerical_features):
@@ -147,7 +165,8 @@ if __name__ == "__main__":
         X,
         y,
         test_size=0.2,
-        random_state=42
+        random_state=42,
+        stratify=y
     )
 
     preprocessor = build_preprocessor(

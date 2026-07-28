@@ -72,7 +72,6 @@ def train_model() -> Pipeline:
     print(y_pred[:10])
     print("\nConfusion Matrix:")
     print(confusion_matrix(y_test, y_pred))
-    print(confusion_matrix(y_test, y_pred))
 
     print("\nClassification Report:")
     print(classification_report(y_test, y_pred))
