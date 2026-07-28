@@ -139,3 +139,35 @@ rotation_analysis["propagation_rate"] = (
 )
 
 print(rotation_analysis)
+
+
+ratio_bins = [0, 0.25, 0.50, 0.75, 1.00, 2.00, float("inf")]
+
+
+ratio_labels = [
+    "0-0.25",
+    "0.25-0.50",
+    "0.50-0.75",
+    "0.75-1.00",
+    "1.00-2.00",
+    "2.00+"
+]
+
+df["RATIO_GROUP"] = pd.cut(
+    df["PREV_DELAY_RATIO"],
+    bins=ratio_bins,
+    labels=ratio_labels,
+    include_lowest=True
+)
+
+ratio_analysis = (
+    df
+    .groupby("RATIO_GROUP", observed=True)["IS_DELAY_PROPAGATED"]
+    .agg(["count", "mean"])
+)
+
+ratio_analysis["propagation_rate"] = (
+    ratio_analysis["mean"] * 100
+)
+
+print(ratio_analysis)
