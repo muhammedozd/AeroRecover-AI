@@ -40,8 +40,10 @@ def build_rotations():
         "DISTANCE",
         "DEP_TIME",
         "ARR_TIME",
+        "LATE_AIRCRAFT_DELAY",
 
     ]
+
     rotation_df = df[rotation_columns].copy()
     rotation_df = rotation_df.dropna(subset=["TAIL_NUM"])
 
@@ -55,6 +57,13 @@ def build_rotations():
 )
     rotation_df = rotation_df.sort_values(
     by=["TAIL_NUM", "FL_DATE", "CRS_DEP_TIME"]
+)
+
+    rotation_df["ROTATION_POSITION"] = (
+    rotation_df
+    .groupby(["TAIL_NUM", "FL_DATE"])
+    .cumcount()
+    + 1
 )
     rotation_df["PREV_DEST"] = (
     rotation_df
@@ -94,6 +103,65 @@ def build_rotations():
     .groupby(["TAIL_NUM", "FL_DATE"])["ARR_MIN"]
     .shift(1)
 )
+
+    # Önceki uçuşun planlanan varış zamanı
+    rotation_df["PREV_CRS_ARR_MIN"] = (
+    rotation_df
+    .groupby(["TAIL_NUM", "FL_DATE"])["CRS_ARR_MIN"]
+    .shift(1)
+)
+
+# Planlanan turnaround süresi
+    rotation_df["PLANNED_TURNAROUND"] = (
+    rotation_df["CRS_DEP_MIN"]
+    - rotation_df["PREV_CRS_ARR_MIN"]
+)
+
+# Gece yarısını aşan uçuşlar için düzeltme
+    rotation_df.loc[
+    rotation_df["PLANNED_TURNAROUND"] < 0,
+    "PLANNED_TURNAROUND"
+] += 1440
+
+    print(rotation_df["PLANNED_TURNAROUND"].describe())
+    print(rotation_df["PLANNED_TURNAROUND"].value_counts().head(20))
+    print(
+    rotation_df[rotation_df["PLANNED_TURNAROUND"] > 300]
+    ["PLANNED_TURNAROUND"]
+    .value_counts()
+)
+    print(
+    (rotation_df["PLANNED_TURNAROUND"] > 300).sum()
+)
+
+    rotation_df["TURN_BUFFER"] = (
+    rotation_df["PLANNED_TURNAROUND"]
+    - rotation_df["PREV_ARR_DELAY"].clip(lower=0)
+)
+   
+    rotation_df["PREV_DELAY_RATIO"] = (
+    rotation_df["PREV_ARR_DELAY"].clip(lower=0)
+    / rotation_df["PLANNED_TURNAROUND"].replace(0, pd.NA)
+)
+    rotation_df["HAS_BUFFER"] = (
+    rotation_df["TURN_BUFFER"] > 0
+).astype(int)
+    rotation_df["PREV_DELAY_LEVEL"] = pd.cut(
+    rotation_df["PREV_ARR_DELAY"],
+    bins=[-1000, -1, 14, 29, 59, 1000],
+    labels=[
+        "Early",
+        "OnTime",
+        "Minor",
+        "Moderate",
+        "Severe"
+    ]
+)
+
+    rotation_df["IS_SHORT_TURN"] = (
+    rotation_df["PLANNED_TURNAROUND"] < 45
+).astype(int)
+
     rotation_df["ACTUAL_TURNAROUND"] = (
     rotation_df["DEP_MIN"]
     - rotation_df["PREV_ARR_MIN"]
@@ -123,7 +191,19 @@ def build_rotations():
     rotation_df["PREV_DELAYED"] = (
     rotation_df["PREV_ARR_DELAY"] >= 15
 ).astype(int)
+
     
+    rotation_df["PROPAGATED_DELAY_MINUTES"] = (
+    rotation_df["LATE_AIRCRAFT_DELAY"]
+    .fillna(0)
+    .clip(lower=0)
+)
+    rotation_df["IS_DELAY_PROPAGATED"] = (
+    rotation_df["PROPAGATED_DELAY_MINUTES"] >= 15
+).astype(int)
+
+
+
 
     rotation_df["TURNAROUND_GROUP"] = pd.cut(
     rotation_df["ACTUAL_TURNAROUND"],
@@ -198,8 +278,24 @@ def build_rotations():
     #print("Eksik tail number sayisi:", rotation_df["TAIL_NUM"].isna().sum())
     #print("İptal edilen uçuş sayisi:", rotation_df["CANCELLED"].sum())
     #print("Yönlendirilen uçuş sayisi:", rotation_df["DIVERTED"].sum())
-
+    print(
+        rotation_df[
+        [
+            "PREV_ARR_DELAY",
+            "LATE_AIRCRAFT_DELAY",
+            "PROPAGATED_DELAY_MINUTES",
+            "IS_DELAY_PROPAGATED"
+        ]
+        ].head(10)
+)
+    print(
+        rotation_df["IS_DELAY_PROPAGATED"]
+    .value_counts(normalize=True)
+)
     return rotation_df
+
+
+
 if __name__ == "__main__":
     rotation_df = build_rotations()
 
