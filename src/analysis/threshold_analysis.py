@@ -387,6 +387,8 @@ def main() -> None:
     ].head()
 )
 
+    
+
     ratio_summary = analyze_previous_delay_ratio(data)
 
     arrival_delay_summary = analyze_previous_arrival_delay(data)
@@ -423,6 +425,8 @@ def main() -> None:
     auc,
 )
 
+    print(risk_score_summary.to_string())
+
     print_analysis(
         "PREV_DELAY_RATIO ANALYSIS",
         ratio_summary,
@@ -447,7 +451,10 @@ def main() -> None:
     print_analysis(
     "OPERATIONAL RISK SCORE ANALYSIS",
     risk_score_summary,
+
+
 )
+
 
 
     
