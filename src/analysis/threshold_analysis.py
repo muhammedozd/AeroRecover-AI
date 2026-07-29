@@ -1,6 +1,8 @@
 from pathlib import Path
 
 import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, roc_auc_score
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -8,6 +10,65 @@ DATA_PATH = PROJECT_ROOT / "data" / "processed" / "rotation_dataset.csv"
 
 TARGET_COLUMN = "IS_DELAY_PROPAGATED"
 
+
+
+
+def score_previous_delay_ratio(value):
+    if value < 0.20:
+        return 0
+    elif value < 0.40:
+        return 1
+    elif value < 0.60:
+        return 2
+    else:
+        return 3
+
+def score_previous_arrival_delay(value):
+    if value < 15:
+        return 0
+    elif value < 30:
+        return 1
+    elif value < 60:
+        return 2
+    else:
+        return 3
+
+def score_turn_buffer(value):
+    if value >= 30:
+        return 0
+    elif value >= 20:
+        return 1
+    elif value >= 10:
+        return 2
+    else:
+        return 3
+
+def score_planned_turnaround(value):
+    if 60 <= value < 180:
+        return 0
+    elif 30 <= value < 60:
+        return 1
+    elif value < 30:
+        return 2
+    else:
+        return 1
+
+def calculate_operational_risk_score(flight):
+    score = 0
+
+    score += score_previous_delay_ratio(flight["PREV_DELAY_RATIO"])
+
+    score += score_previous_arrival_delay(flight["PREV_ARR_DELAY"])
+
+    score += score_turn_buffer(flight["TURN_BUFFER"])
+
+    score += score_planned_turnaround(flight["PLANNED_TURNAROUND"])
+
+    return score
+
+ 
+
+   
 
 def load_data() -> pd.DataFrame:
     if not DATA_PATH.exists():
@@ -192,6 +253,65 @@ def analyze_planned_turnaround(
     )
 
 
+def calculate_roc_metrics(
+    data: pd.DataFrame,
+):
+    y_true = data[TARGET_COLUMN]
+
+    y_score = data["OPERATIONAL_RISK_SCORE"]
+
+    fpr, tpr, thresholds = roc_curve(
+        y_true,
+        y_score,
+    )
+
+    auc = roc_auc_score(
+        y_true,
+        y_score,
+    )
+
+    return (
+        fpr,
+        tpr,
+        thresholds,
+        auc,
+    )
+
+
+
+
+
+def plot_roc_curve(
+    fpr,
+    tpr,
+    auc,
+):
+    plt.figure(figsize=(8, 6))
+
+    plt.plot(
+        fpr,
+        tpr,
+        label=f"Operational Risk Score (AUC = {auc:.3f})",
+    )
+
+    plt.plot(
+        [0, 1],
+        [0, 1],
+        linestyle="--",
+        label="Random Classifier",
+    )
+
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve - Operational Risk Score")
+
+    plt.legend()
+    plt.grid()
+
+    plt.tight_layout()
+    plt.show()
+
+
 def print_analysis(
     title: str,
     summary: pd.DataFrame,
@@ -202,8 +322,48 @@ def print_analysis(
     print(summary)
 
 
+
+def analyze_operational_risk_score(
+    data: pd.DataFrame,
+) -> pd.DataFrame:
+    summary = (
+        data
+        .groupby("OPERATIONAL_RISK_SCORE")[TARGET_COLUMN]
+        .agg(["count", "sum", "mean"])
+    )
+
+    summary = summary.rename(
+        columns={
+            "count": "flight_count",
+            "sum": "propagated_flights",
+            "mean": "propagation_rate",
+        }
+    )
+
+    summary["propagation_rate"] *= 100
+
+    return summary
+
+
 def main() -> None:
     data = load_data()
+
+    data["OPERATIONAL_RISK_SCORE"] = data.apply(
+    calculate_operational_risk_score,
+    axis=1,
+)
+
+    print(
+    data[
+        [
+            "PREV_DELAY_RATIO",
+            "PREV_ARR_DELAY",
+            "TURN_BUFFER",
+            "PLANNED_TURNAROUND",
+            "OPERATIONAL_RISK_SCORE",
+        ]
+    ].head()
+)
 
     ratio_summary = analyze_previous_delay_ratio(data)
 
@@ -212,6 +372,19 @@ def main() -> None:
     turn_buffer_summary = analyze_turn_buffer(data)
 
     turnaround_summary = analyze_planned_turnaround(data)
+
+    risk_score_summary = analyze_operational_risk_score(data)
+
+    fpr, tpr, thresholds, auc = calculate_roc_metrics(
+    data,
+
+)
+    print(f"AUC Score: {auc:.4f}")
+    plot_roc_curve(
+    fpr,
+    tpr,
+    auc,
+)
 
     print_analysis(
         "PREV_DELAY_RATIO ANALYSIS",
@@ -234,5 +407,14 @@ def main() -> None:
     )
 
 
+    print_analysis(
+    "OPERATIONAL RISK SCORE ANALYSIS",
+    risk_score_summary,
+)
+
+
+    
+
 if __name__ == "__main__":
     main()
+
