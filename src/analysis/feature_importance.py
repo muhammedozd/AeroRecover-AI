@@ -44,3 +44,4 @@ feature_importance_df = feature_importance_df.sort_values(
 
 print("\nTop 20 features:")
 print(feature_importance_df.head(20).to_string(index=False))
+

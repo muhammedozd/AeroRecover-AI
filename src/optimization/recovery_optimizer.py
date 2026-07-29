@@ -31,13 +31,15 @@ def identify_risk_factors(flight_data: dict[str, Any]) -> list[str]:
     turn_buffer = flight_data.get("TURN_BUFFER", 0)
     previous_delay_ratio = flight_data.get("PREV_DELAY_RATIO", 0.0)
 
+
     if previous_arrival_delay >= 30:
         risk_factors.append("Previous arrival delay is high.")
 
     if turn_buffer < 10:
         risk_factors.append("Turnaround buffer is insufficient.")
 
-
+    if previous_delay_ratio >= 0.5:
+        risk_factors.append("Previous delay ratio is high.")
 
 
     return risk_factors

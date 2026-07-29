@@ -345,6 +345,28 @@ def analyze_operational_risk_score(
     return summary
 
 
+def calculate_optimal_threshold(
+    fpr,
+    tpr,
+    thresholds,
+):
+    youden_index = tpr - fpr
+
+    best_index = youden_index.argmax()
+
+    best_threshold = thresholds[best_index]
+    best_sensitivity = tpr[best_index]
+    best_specificity = 1 - fpr[best_index]
+    best_youden_index = youden_index[best_index]
+
+    return (
+        best_threshold,
+        best_sensitivity,
+        best_specificity,
+        best_youden_index,
+    )
+
+
 def main() -> None:
     data = load_data()
 
@@ -379,6 +401,21 @@ def main() -> None:
     data,
 
 )
+
+
+    best_threshold, sensitivity, specificity, youden_index = (
+    calculate_optimal_threshold(
+        fpr,
+        tpr,
+        thresholds,
+    )
+    )
+
+    print(f"Best Threshold: {best_threshold:.2f}")
+    print(f"Sensitivity: {sensitivity:.4f}")
+    print(f"Specificity: {specificity:.4f}")
+    print(f"Youden Index: {youden_index:.4f}")
+
     print(f"AUC Score: {auc:.4f}")
     plot_roc_curve(
     fpr,
