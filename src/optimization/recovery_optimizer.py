@@ -1,6 +1,9 @@
 """Flight recovery optimization utilities."""
 
 from typing import Any, Literal
+from src.analysis.threshold_analysis import (
+    calculate_operational_risk_score,
+)
 
 
 RiskLevel = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
@@ -35,49 +38,116 @@ def identify_risk_factors(
     previous_delay_ratio = flight_data.get("PREV_DELAY_RATIO")
     planned_turnaround = flight_data.get("PLANNED_TURNAROUND")
 
-    if (
-        previous_arrival_delay is not None
-        and previous_arrival_delay >= 30
-    ):
-        risk_factors.append(
-            "Previous arrival delay is high."
-        )
+    if previous_arrival_delay is not None:
+        if previous_arrival_delay >= 60:
+            risk_factors.append(
+                "Previous arrival delay is critically high."
+            )
+        elif previous_arrival_delay >= 30:
+            risk_factors.append(
+                "Previous arrival delay is high."
+            )
+        elif previous_arrival_delay >= 15:
+            risk_factors.append(
+                "Previous arrival delay is moderately high."
+            )
 
-    if (
-        turn_buffer is not None
-        and turn_buffer < 20
-    ):
-        risk_factors.append(
-            "Turnaround buffer is insufficient."
-        )
+    if turn_buffer is not None:
+        if turn_buffer < 0:
+            risk_factors.append(
+                "Turnaround buffer is critically insufficient."
+            )
+        elif turn_buffer < 10:
+            risk_factors.append(
+                "Turnaround buffer is severely insufficient."
+            )
+        elif turn_buffer < 20:
+            risk_factors.append(
+                "Turnaround buffer is insufficient."
+            )
+        elif turn_buffer < 30:
+            risk_factors.append(
+                "Turnaround buffer is limited."
+            )
 
-    if (
-        previous_delay_ratio is not None
-        and previous_delay_ratio >= 0.40
-    ):
-        risk_factors.append(
-            "Previous delay ratio is high."
-        )
+    if previous_delay_ratio is not None:
+        if previous_delay_ratio >= 0.80:
+            risk_factors.append(
+                "Previous delay ratio is critically high."
+            )
+        elif previous_delay_ratio >= 0.60:
+            risk_factors.append(
+                "Previous delay ratio is very high."
+            )
+        elif previous_delay_ratio >= 0.40:
+            risk_factors.append(
+                "Previous delay ratio is high."
+            )
+        elif previous_delay_ratio >= 0.20:
+            risk_factors.append(
+                "Previous delay ratio is moderately high."
+            )
 
-    if (
-        planned_turnaround is not None
-        and planned_turnaround < 30
-    ):
-        risk_factors.append(
-            "Planned turnaround time is critically short."
-        )
+    if planned_turnaround is not None:
+        if planned_turnaround < 30:
+            risk_factors.append(
+                "Planned turnaround time is critically short."
+            )
+        elif planned_turnaround < 60:
+            risk_factors.append(
+                "Planned turnaround time is short."
+            )
+        elif planned_turnaround >= 180:
+            risk_factors.append(
+                "Planned turnaround time is unusually long."
+            )
 
     return risk_factors
 
 
-sample_flight = {
-    "PREV_ARR_DELAY": 45,
+
+def generate_flight_risk_report(
+    flight_data: dict[str, Any],
+) -> None:
+
+    score = calculate_operational_risk_score(
+        flight_data
+    )
+
+    risk_level = determine_risk_level(
+        score
+    )
+
+    risk_factors = identify_risk_factors(
+        flight_data
+    )
+
+    print("=" * 60)
+    print("FLIGHT RISK ASSESSMENT")
+    print("=" * 60)
+
+    print(f"Operational Risk Score : {score} / 11")
+    print(f"Risk Level             : {risk_level}")
+
+    print("\nRisk Factors")
+    print("-" * 30)
+
+    for factor in risk_factors:
+        print(f"- {factor}")
+
+
+def main():
+
+    sample_flight = {
+    "PREV_ARR_DELAY": 75,
     "TURN_BUFFER": 8,
     "PREV_DELAY_RATIO": 0.65,
     "PLANNED_TURNAROUND": 25,
 }
 
-risk_factors = identify_risk_factors(sample_flight)
+    generate_flight_risk_report(
+    sample_flight
+)
 
-for factor in risk_factors:
-    print(factor)
+if __name__ == "__main__":
+    main()
