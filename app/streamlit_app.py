@@ -1,5 +1,47 @@
 import streamlit as st
+from pathlib import Path
+import pandas as pd
+import joblib
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+MODEL_PATH = (
+    PROJECT_ROOT
+    / "models"
+    / "xgboost_propagation_classifier.pkl"
+)
+
+#model yükleme fonksiyonu
+# @st.cache_resource,
+# Streamlit her input değiştiğinde modeli diskten tekrar tekrar
+# yüklemesin diye modeli bellekte tutar.
+
+@st.cache_resource
+def load_model():
+    return joblib.load(MODEL_PATH)
+
+
+def get_previous_delay_level(delay):
+    if delay < 0:
+        return "Early"
+    if delay < 15:
+        return "OnTime"
+    if delay < 30:
+        return "Minor"
+    if delay < 60:
+        return "Moderate"
+    return "Severe"
+
+
+def time_to_minutes(time_value):
+    return (
+        time_value.hour * 60
+        + time_value.minute
+    )
+
+
+
+model = load_model()
 
 from src.decision_support.recommendation_engine import generate_recommendations
 from src.optimization.recovery_optimizer import (
@@ -50,6 +92,27 @@ planned_turnaround = st.number_input(
     value=0,
 )
 
+previous_destination = st.text_input(
+    "Previous destination airport",
+    value="JFK",
+    max_chars=3,
+)
+
+rotation_position = st.number_input(
+    "Rotation position",
+    min_value=2,
+    value=2,
+    step=1,
+)
+
+scheduled_arrival_time = st.time_input(
+    "Previous scheduled arrival time"
+)
+
+actual_arrival_time = st.time_input(
+    "Previous actual arrival time"
+)
+
 analyze_button = st.button(
     "✈️ Analyze Flight",
     use_container_width=True,
@@ -66,6 +129,58 @@ if analyze_button:
         "PLANNED_TURNAROUND": planned_turnaround,
     }
 
+    flight_data["HAS_BUFFER"] = int(
+    flight_data["TURN_BUFFER"] > 0
+)
+
+    flight_data["IS_SHORT_TURN"] = int(
+    flight_data["PLANNED_TURNAROUND"] < 45
+)
+
+    flight_data["PREV_DELAYED"] = int(
+    flight_data["PREV_ARR_DELAY"] >= 15
+)
+
+    flight_data["PREV_DELAY_LEVEL"] = (
+    get_previous_delay_level(
+        flight_data["PREV_ARR_DELAY"]
+    )
+)
+
+    flight_data["PREV_DEST"] = (
+    previous_destination.strip().upper()
+)
+
+    flight_data["ROTATION_POSITION"] = int(
+    rotation_position
+)
+
+    flight_data["PREV_CRS_ARR_MIN"] = time_to_minutes(
+    scheduled_arrival_time
+)
+
+    flight_data["PREV_ARR_MIN"] = time_to_minutes(
+    actual_arrival_time
+)
+
+    model_input = pd.DataFrame(
+    [flight_data]
+)
+
+    model_input = model_input[
+    model.feature_names_in_
+]
+
+
+    propagation_probability = model.predict_proba(
+    model_input
+)         [0][1]
+
+    propagation_percentage = (
+    propagation_probability * 100
+)
+
+
     score = calculate_operational_risk_score(
         flight_data
     )
@@ -74,21 +189,32 @@ if analyze_button:
     score
 )
 
-score_column, level_column = st.columns(2)
-
-with score_column:
     st.metric(
+    label="Propagation Probability",
+    value=f"{propagation_percentage:.1f}%",
+)
+
+    prob_column, score_column, level_column = st.columns(3)
+
+    with score_column:
+        st.metric(
         label="Operational Risk Score",
         value=f"{score} / 11",
     )
 
-with level_column:
-    st.metric(
+    with level_column:
+        st.metric(
         label="Risk Level",
         value=risk_level,
     )
     risk_factors = identify_risk_factors(
         flight_data
+    )
+
+    with prob_column:
+        st.metric(
+        "Propagation Probability",
+        f"{propagation_percentage:.1f}%",
     )
 
     st.subheader("Risk Factors")
