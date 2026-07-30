@@ -174,3 +174,57 @@ def generate_recommendations(
                     "priority": "MEDIUM",
                 }
             )
+
+
+    planned_turnaround = flight_data.get(
+        "PLANNED_TURNAROUND"
+    )
+
+    if planned_turnaround is not None:
+
+        if planned_turnaround < 30:
+            recommendations.append(
+                {
+                    "action": (
+                        "Pre-position ground resources before "
+                        "the aircraft arrives."
+                    ),
+                    "reason": (
+                        "The planned turnaround time is less "
+                        "than 30 minutes."
+                    ),
+                    "priority": "HIGH",
+                }
+            )
+
+        elif planned_turnaround < 60:
+            recommendations.append(
+                {
+                    "action": (
+                        "Coordinate turnaround activities and "
+                        "monitor task completion times."
+                    ),
+                    "reason": (
+                        "The planned turnaround time is between "
+                        "30 and 59 minutes."
+                    ),
+                    "priority": "MEDIUM",
+                }
+            )
+
+        elif planned_turnaround >= 180:
+            recommendations.append(
+                {
+                    "action": (
+                        "Review the extended turnaround plan "
+                        "for operational irregularities."
+                    ),
+                    "reason": (
+                        "The planned turnaround time is at least "
+                        "180 minutes."
+                    ),
+                    "priority": "MEDIUM",
+                }
+            )
+
+        return recommendations
