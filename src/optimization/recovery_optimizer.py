@@ -139,8 +139,8 @@ def generate_flight_risk_report(
 def main():
 
     sample_flight = {
-    "PREV_ARR_DELAY": 75,
-    "TURN_BUFFER": 8,
+    "PREV_ARR_DELAY": 20,
+    "TURN_BUFFER": 40,
     "PREV_DELAY_RATIO": 0.65,
     "PLANNED_TURNAROUND": 25,
 }
