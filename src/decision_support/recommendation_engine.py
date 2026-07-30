@@ -74,4 +74,52 @@ def generate_recommendations(
             )
 
 
+        turn_buffer = flight_data.get(
+        "TURN_BUFFER"
+    )
 
+    if turn_buffer is not None:
+
+        if turn_buffer < 10:
+            recommendations.append(
+                {
+                    "action": (
+                        "Prioritize turnaround activities and "
+                        "prepare ground resources in advance."
+                    ),
+                    "reason": (
+                        "The turnaround buffer is less than "
+                        "10 minutes."
+                    ),
+                    "priority": "CRITICAL",
+                }
+            )
+
+        elif turn_buffer < 20:
+            recommendations.append(
+                {
+                    "action": (
+                        "Coordinate ground handling teams "
+                        "before aircraft arrival."
+                    ),
+                    "reason": (
+                        "The turnaround buffer is between "
+                        "10 and 19 minutes."
+                    ),
+                    "priority": "HIGH",
+                }
+            )
+
+        elif turn_buffer < 30:
+            recommendations.append(
+                {
+                    "action": (
+                        "Monitor turnaround progress closely."
+                    ),
+                    "reason": (
+                        "The turnaround buffer is between "
+                        "20 and 29 minutes."
+                    ),
+                    "priority": "MEDIUM",
+                }
+            )
