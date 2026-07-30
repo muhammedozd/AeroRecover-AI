@@ -26,7 +26,7 @@ def generate_recommendations(
     )
 
     if previous_arrival_delay is not None:
-     if previous_arrival_delay >= 60:
+        if previous_arrival_delay >= 60:
             recommendations.append(
 
                  {
@@ -44,7 +44,7 @@ def generate_recommendations(
             )
 
 
-     elif previous_arrival_delay >= 30:
+        elif previous_arrival_delay >= 30:
             recommendations.append(
                 {
                     "action": (
@@ -59,7 +59,7 @@ def generate_recommendations(
                 }
             )
 
-     if previous_arrival_delay >= 15:
+        elif previous_arrival_delay >= 15:
             recommendations.append(
                 {
                     "action": (
@@ -228,3 +228,4 @@ def generate_recommendations(
             )
 
         return recommendations
+    
