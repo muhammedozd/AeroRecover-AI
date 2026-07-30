@@ -74,7 +74,7 @@ def generate_recommendations(
             )
 
 
-        turn_buffer = flight_data.get(
+    turn_buffer = flight_data.get(
         "TURN_BUFFER"
     )
 
@@ -119,6 +119,57 @@ def generate_recommendations(
                     "reason": (
                         "The turnaround buffer is between "
                         "20 and 29 minutes."
+                    ),
+                    "priority": "MEDIUM",
+                }
+            )
+
+
+    previous_delay_ratio = flight_data.get(
+        "PREV_DELAY_RATIO"
+    )
+
+    if previous_delay_ratio is not None:
+
+        if previous_delay_ratio >= 0.60:
+            recommendations.append(
+                {
+                    "action": (
+                        "Increase operational monitoring for "
+                        "subsequent flight rotations."
+                    ),
+                    "reason": (
+                        "More than 60% of previous flights "
+                        "experienced delays."
+                    ),
+                    "priority": "CRITICAL",
+                }
+            )
+
+        elif previous_delay_ratio >= 0.40:
+            recommendations.append(
+                {
+                    "action": (
+                        "Review aircraft rotation plans and "
+                        "prepare contingency resources."
+                    ),
+                    "reason": (
+                        "Between 40% and 59% of previous "
+                        "flights experienced delays."
+                    ),
+                    "priority": "HIGH",
+                }
+            )
+
+        elif previous_delay_ratio >= 0.20:
+            recommendations.append(
+                {
+                    "action": (
+                        "Monitor delay trends for this aircraft."
+                    ),
+                    "reason": (
+                        "Between 20% and 39% of previous "
+                        "flights experienced delays."
                     ),
                     "priority": "MEDIUM",
                 }
