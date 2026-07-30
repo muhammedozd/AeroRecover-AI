@@ -5,6 +5,11 @@ from src.analysis.threshold_analysis import (
     calculate_operational_risk_score,
 )
 
+from src.decision_support.recommendation_engine import (
+    generate_recommendations,
+)
+
+
 
 RiskLevel = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
@@ -122,6 +127,11 @@ def generate_flight_risk_report(
         flight_data
     )
 
+    recommendations = generate_recommendations(
+    flight_data
+)
+    
+
     print("=" * 60)
     print("FLIGHT RISK ASSESSMENT")
     print("=" * 60)
@@ -135,19 +145,28 @@ def generate_flight_risk_report(
     for factor in risk_factors:
         print(f"- {factor}")
 
+    print("\nRecommendations")
+    print("-" * 30)
+
+    for recommendation in recommendations:
+        print(f"- Action   : {recommendation['action']}")
+        print(f"  Reason   : {recommendation['reason']}")
+        print(f"  Priority : {recommendation['priority']}")
+        print()
+
 
 def main():
 
-    sample_flight = {
-    "PREV_ARR_DELAY": 20,
-    "TURN_BUFFER": 40,
-    "PREV_DELAY_RATIO": 0.65,
-    "PLANNED_TURNAROUND": 25,
+   sample_flight = {
+    "PREV_ARR_DELAY": 80,
+    "TURN_BUFFER": 5,
+    "PREV_DELAY_RATIO": 0.75,
+    "PLANNED_TURNAROUND": 20,
 }
-
-    generate_flight_risk_report(
+   generate_flight_risk_report(
     sample_flight
 )
+   
 
 if __name__ == "__main__":
     main()
