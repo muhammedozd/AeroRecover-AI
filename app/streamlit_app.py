@@ -2,6 +2,7 @@ import streamlit as st
 from pathlib import Path
 import pandas as pd
 import joblib
+import shap
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,6 +20,13 @@ MODEL_PATH = (
 @st.cache_resource
 def load_model():
     return joblib.load(MODEL_PATH)
+
+
+@st.cache_resource
+def load_shap_explainer(_model):
+    classifier = _model.named_steps["classifier"]
+    explainer = shap.TreeExplainer(classifier)
+    return explainer
 
 
 def get_previous_delay_level(delay):
@@ -42,6 +50,7 @@ def time_to_minutes(time_value):
 
 
 model = load_model()
+shap_explainer = load_shap_explainer(model)
 
 from src.decision_support.recommendation_engine import generate_recommendations
 from src.optimization.recovery_optimizer import (
@@ -171,10 +180,48 @@ if analyze_button:
     model.feature_names_in_
 ]
 
+    preprocessor = model.named_steps["preprocessor"]
+
+    transformed_input = preprocessor.transform(
+    model_input
+)
+
+    shap_values = shap_explainer(
+    transformed_input
+)
+    feature_names = preprocessor.get_feature_names_out()
+
+    shap_table = pd.DataFrame({
+    "feature": feature_names,
+    "shap_value": shap_values.values[0],
+})
+
+    shap_table["importance"] = shap_table["shap_value"].abs()
+
+    top_factors = (
+    shap_table
+    .sort_values(
+        by="importance",
+        ascending=False
+    )
+    .head(5)
+)
+
+
+    top_factors["feature"] = (
+    top_factors["feature"]
+    .str.replace("numerical__", "", regex=False)
+    .str.replace("categorical__", "", regex=False)
+)
+
+    st.dataframe(top_factors)
+    
+    
+
 
     propagation_probability = model.predict_proba(
     model_input
-)         [0][1]
+)[0][1]
 
     propagation_percentage = (
     propagation_probability * 100
@@ -187,13 +234,9 @@ if analyze_button:
 
     risk_level = determine_risk_level(
     score
-)
 
-    st.metric(
-    label="Propagation Probability",
-    value=f"{propagation_percentage:.1f}%",
-)
 
+)
     prob_column, score_column, level_column = st.columns(3)
 
     with score_column:
