@@ -7,13 +7,15 @@ from pathlib import Path
 # PROJECT PATHS
 # ==========================================
 
+
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 OUTPUT_PATH = (
     PROJECT_ROOT
     / "data"
     / "processed"
-    / "rotation_dataset.csv"
+    / "rotation_dataset_2023.csv"
 
 )
 OUTPUT_PATH.parent.mkdir(
@@ -21,9 +23,6 @@ OUTPUT_PATH.parent.mkdir(
     exist_ok=True
 )
 def build_rotations():
-    df = load_flights()
-
-
     rotation_columns = [
         "FL_DATE",
         "TAIL_NUM",
@@ -41,16 +40,22 @@ def build_rotations():
         "DEP_TIME",
         "ARR_TIME",
         "LATE_AIRCRAFT_DELAY",
-
     ]
 
-    rotation_df = df[rotation_columns].copy()
+    rotation_df = load_flights(
+        columns=rotation_columns
+    )
+
     rotation_df = rotation_df.dropna(subset=["TAIL_NUM"])
 
     rotation_df = rotation_df[
     (rotation_df["CANCELLED"] == 0) &
     (rotation_df["DIVERTED"] == 0)
 ]
+
+    print(
+    f"Filtreleme sonrası uçuş sayısı: {len(rotation_df):,}"
+)
     rotation_df["FL_DATE"] = pd.to_datetime(
     rotation_df["FL_DATE"],
     format="%m/%d/%Y %I:%M:%S %p"
@@ -122,6 +127,11 @@ def build_rotations():
     rotation_df["PLANNED_TURNAROUND"] < 0,
     "PLANNED_TURNAROUND"
 ] += 1440
+    #rotation_df["IS_CONNECTED"] önceki uçuşun varış noktası ile mevcut uçuşun kalkış noktasının aynı olup olmadığını kontrol eder.
+    rotation_df = rotation_df[
+    rotation_df["IS_CONNECTED"]
+    & rotation_df["PLANNED_TURNAROUND"].between(1, 240)
+].copy()
 
     print(rotation_df["PLANNED_TURNAROUND"].describe())
     print(rotation_df["PLANNED_TURNAROUND"].value_counts().head(20))
@@ -174,22 +184,9 @@ def build_rotations():
     rotation_df["ACTUAL_TURNAROUND"] < 0,
     "ACTUAL_TURNAROUND"
 ] += 1440
-
-    rotation_df["VALID_ROTATION"] = (
-    rotation_df["PREV_DEST"]
-    == rotation_df["ORIGIN"]
-)
-    rotation_df.loc[
-    rotation_df["VALID_ROTATION"] == False,
-    "ACTUAL_TURNAROUND"
-] = pd.NA
     
     rotation_df = rotation_df[
-    rotation_df["ACTUAL_TURNAROUND"] <= 240
-].copy()
-    
-    rotation_df = rotation_df[
-    rotation_df["VALID_ROTATION"]
+    rotation_df["ACTUAL_TURNAROUND"].between(1, 240)
 ].copy()
 
     rotation_df["PREV_DELAYED"] = (
@@ -295,6 +292,14 @@ def build_rotations():
     print(
         rotation_df["IS_DELAY_PROPAGATED"]
     .value_counts(normalize=True)
+)
+    invalid_planned_turns = (
+    rotation_df["PLANNED_TURNAROUND"] > 240
+).sum()
+
+    print( 
+    f"Nihai veride 240 dakikadan büyük planlanan "
+    f"turnaround: {invalid_planned_turns:,}"
 )
     return rotation_df
 
