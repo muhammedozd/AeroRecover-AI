@@ -3,8 +3,13 @@ import pandas as pd
 import shap
 import matplotlib.pyplot as plt
 from pathlib import Path
+import xgboost as xgb
 
-
+from src.models.train_rotation_model import (
+    MODEL_COLUMNS,
+    create_time_masks,
+    prepare_features,
+)
 # --------------------------------------------------
 # Project paths
 # --------------------------------------------------
@@ -14,14 +19,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MODEL_PATH = (
     PROJECT_ROOT
     / "models"
-    / "xgboost_propagation_classifier.pkl"
+    / "xgboost_propagation_2023_time_split.pkl"
 )
 
 DATA_PATH = (
     PROJECT_ROOT
     / "data"
     / "processed"
-    / "rotation_dataset.csv"
+    / "rotation_dataset_2023.csv"
 )
 
 FIGURES_DIR = (
@@ -57,46 +62,28 @@ df = pd.read_csv(DATA_PATH)
 print("Veri boyutu:", df.shape)
 print("Sutun sayisi:", len(df.columns))
 
+X, y, _, _ = prepare_features(df)
 
-# --------------------------------------------------
-# Define model features
-# --------------------------------------------------
+_, validation_mask, _ = create_time_masks(df)
 
-categorical_features = [
-    "PREV_DEST",
-    "PREV_DELAY_LEVEL"
-]
+X_validation = X.loc[validation_mask]
+y_validation = y.loc[validation_mask]
 
-numerical_features = [
-    "ROTATION_POSITION",
-    "PREV_ARR_DELAY",
-    "PREV_ARR_MIN",
-    "PREV_CRS_ARR_MIN",
-    "PLANNED_TURNAROUND",
-    "TURN_BUFFER",
-    "PREV_DELAY_RATIO",
-    "HAS_BUFFER",
-    "IS_SHORT_TURN",
-    "PREV_DELAYED"
-]
-
-features = categorical_features + numerical_features
-
-X = df[features]
-
-print("X boyutu:", X.shape)
-print(X.head())
-
+print("Validation X boyutu:", X_validation.shape)
+print("Validation y boyutu:", y_validation.shape)
 
 # --------------------------------------------------
 # Create SHAP sample
 # --------------------------------------------------
 
-sample_size = min(5000, len(X))
+sample_size = min(
+    5000,
+    len(X_validation),
+)
 
-X_sample = X.sample(
+X_sample = X_validation.sample(
     n=sample_size,
-    random_state=42
+    random_state=42,
 ).copy()
 
 print("SHAP ornek boyutu:", X_sample.shape)
@@ -141,20 +128,23 @@ print(feature_names[:10])
 # Create SHAP explainer
 # --------------------------------------------------
 
-explainer = shap.TreeExplainer(classifier)
 
-print("SHAP Explainer olusturuldu.")
-
-
-# --------------------------------------------------
-# Calculate SHAP values
-# --------------------------------------------------
-
-shap_values = explainer(
-    X_sample_dense
+booster = classifier.get_booster()
+shap_dmatrix = xgb.DMatrix(
+    X_sample_transformed,
+    feature_names=feature_names.tolist(),
 )
 
-shap_values.feature_names = feature_names
+shap_contributions = booster.predict(
+    shap_dmatrix,
+    pred_contribs=True,
+)
+shap_values = shap.Explanation(
+    values=shap_contributions[:, :-1],
+    base_values=shap_contributions[:, -1],
+    data=X_sample_dense,
+    feature_names=feature_names,
+)
 
 print("SHAP Explanation olusturuldu.")
 print("SHAP boyutu:", shap_values.shape)
@@ -164,20 +154,31 @@ print("SHAP boyutu:", shap_values.shape)
 # Select one flight for local explanation
 # --------------------------------------------------
 
-single_flight_index = 0
+#En yüksek olasılığın bulunduğu konumu verir
+sample_probabilities = booster.predict(
+    shap_dmatrix
+)
+single_flight_index = (
+    sample_probabilities.argmax()
+)
+
+single_flight_probability = (
+    sample_probabilities[single_flight_index]
+)
+
+
 
 single_flight_explanation = shap_values[
     single_flight_index
 ]
 
-single_flight_probability = pipeline.predict_proba(
-    X_sample.iloc[[single_flight_index]]
-)[0, 1]
 
-single_flight_prediction = pipeline.predict(
-    X_sample.iloc[[single_flight_index]]
-)[0]
+F1_OPTIMAL_THRESHOLD = 0.46
 
+single_flight_prediction = int(
+    single_flight_probability
+    >= F1_OPTIMAL_THRESHOLD
+)
 print(
     "Secilen ucusun tahmin sinifi:",
     int(single_flight_prediction)
@@ -192,15 +193,30 @@ print("Secilen ucusun orijinal feature degerleri:")
 print(X_sample.iloc[single_flight_index])
 
 
+shap_raw_score = (
+    single_flight_explanation.base_values
+    + single_flight_explanation.values.sum()
+)
+
+model_raw_scores = booster.predict(
+    shap_dmatrix,
+    output_margin=True,
+)
+
+model_raw_score = model_raw_scores[
+    single_flight_index
+]
+
+print("SHAP raw score :", round(float(shap_raw_score), 4))
+print("Model raw score:", round(float(model_raw_score), 4))
 # --------------------------------------------------
 # Waterfall Plot
 # --------------------------------------------------
 
 waterfall_path = (
     FIGURES_DIR
-    / "shap_waterfall.png"
+    / "shap_waterfall_2023_validation.png"
 )
-
 
 
 shap.plots.waterfall(
@@ -231,7 +247,7 @@ print(
 
 summary_path = (
     FIGURES_DIR
-    / "shap_summary.png"
+    / "shap_summary_2023_validation.png"
 )
 
 plt.figure()
@@ -266,7 +282,7 @@ print(
 
 dependence_path = (
     FIGURES_DIR
-    / "shap_dependence_prev_delay_ratio.png"
+    / "shap_dependence_prev_delay_ratio_2023_validation.png"
 )
 
 plt.figure()
