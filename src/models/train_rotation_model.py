@@ -1,10 +1,8 @@
 from pathlib import Path
-from sklearn.model_selection import train_test_split
 import joblib
 import pandas as pd
 
 from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
@@ -20,40 +18,22 @@ DATA_PATH = (
     PROJECT_ROOT
     / "data"
     / "processed"
-    / "rotation_dataset.csv"
+    /  "rotation_dataset_2023.csv"
 )
 
 MODEL_PATH = (
     PROJECT_ROOT
     / "models"
-    / "xgboost_propagation_classifier.pkl"
+    /  "xgboost_propagation_2023_time_split.pkl"
 )
 
-def load_dataset():
-    """
-    Load the processed aircraft rotation dataset.
-    """
 
-    df = pd.read_csv(DATA_PATH)
-
-    print("=" * 50)
-    print("Dataset loaded successfully.")
-    print(f"Shape: {df.shape}")
-    print("=" * 50)
-
-    return df
-
-def prepare_features(df):
-    """
-    Select features and target for delay propagation prediction.
-    """
-
-    categorical_features = [
+CATEGORICAL_FEATURES = [
         "PREV_DEST",
         "PREV_DELAY_LEVEL"
     ]
 
-    numerical_features = [
+NUMERICAL_FEATURES = [
         "ROTATION_POSITION",
         "PREV_ARR_DELAY",
         "PREV_ARR_MIN",
@@ -66,38 +46,81 @@ def prepare_features(df):
         "PREV_DELAYED"
     ]
 
-    target_column = "IS_DELAY_PROPAGATED"
+TARGET_COLUMN = "IS_DELAY_PROPAGATED"
+
+MODEL_COLUMNS = (
+    ["FL_DATE"]
+    + CATEGORICAL_FEATURES
+    + NUMERICAL_FEATURES
+    + [TARGET_COLUMN]
+)
+
+def load_dataset():
+    """
+    Load the processed aircraft rotation dataset.
+    """
+
+    df = pd.read_csv(
+    DATA_PATH,
+    usecols=MODEL_COLUMNS,
+    low_memory=False,
+)
+
+    print("=" * 50)
+    print("Dataset loaded successfully.")
+    print(f"Shape: {df.shape}")
+    print("=" * 50)
+
+    return df
+
+
+def create_time_masks(df):
+    """
+    Create chronological train, validation and test masks.
+    """
+
+    flight_dates = pd.to_datetime(
+        df["FL_DATE"],
+        format="%Y-%m-%d",
+    )
+
+    train_mask = flight_dates < "2023-09-01"
+
+    validation_mask = (
+        (flight_dates >= "2023-09-01")
+        & (flight_dates < "2023-11-01")
+    )
+
+    test_mask = flight_dates >= "2023-11-01"
+
+    return (
+        train_mask,
+        validation_mask,
+        test_mask,
+    )
+
+
+def prepare_features(df):
+    """
+    Select features and target for delay propagation prediction.
+    """
 
     feature_columns = (
-        categorical_features
-        + numerical_features
+        CATEGORICAL_FEATURES
+        + NUMERICAL_FEATURES
     )
 
     X = df[feature_columns]
-    y = df[target_column]
+    y = df[TARGET_COLUMN]
 
     return (
         X,
         y,
-        categorical_features,
-        numerical_features
+        CATEGORICAL_FEATURES,
+        NUMERICAL_FEATURES,
     )
 
 
-    print("\nFeature kontrolü")
-    print("-" * 50)
-
-    print("X shape:", X.shape)
-    print("y shape:", y.shape)
-
-    print("\nKullanılan feature'lar:")
-    print(X.columns.tolist())
-
-    print("\nTarget dağılımı:")
-    print(y.value_counts())
-
-    print("\nTarget oranı:")
-    print(y.value_counts(normalize=True))
 
 
 def build_preprocessor(categorical_features, numerical_features):
@@ -135,13 +158,17 @@ def build_pipeline(preprocessor):
             ),
             (
                 "classifier",
+                #tree_method="hist" → Büyük veriyi daha verimli eğitir.
+                #n_jobs=-1 → Tüm CPU çekirdeklerini kullanır.
                 XGBClassifier(
-                    random_state=42,
-                    n_estimators=100,
-                    learning_rate=0.1,
-                    max_depth=6,
-                    eval_metric="logloss"
-                )
+        random_state=42,
+        n_estimators=100,
+        learning_rate=0.1,
+        max_depth=6,
+        eval_metric="logloss",
+        tree_method="hist",
+        n_jobs=-1,
+)
             )
         ]
     )
@@ -160,15 +187,39 @@ if __name__ == "__main__":
     )   = prepare_features(df)
 
 
+    train_mask, validation_mask, test_mask = (
+    create_time_masks(df)
+)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
-        stratify=y
-    )
 
+    X_train = X.loc[train_mask]
+    y_train = y.loc[train_mask]
+
+
+    X_validation = X.loc[validation_mask]
+    y_validation = y.loc[validation_mask]
+
+    X_test = X.loc[test_mask]
+    y_test = y.loc[test_mask]
+
+    print("\nTime-based dataset split")
+    print("-" * 50)
+
+    print(f"Train samples: {len(X_train):,}")
+    print(f"Validation samples: {len(X_validation):,}")
+    print(f"Test samples: {len(X_test):,}") 
+
+    total_split_samples = (
+    len(X_train)
+    + len(X_validation)
+    + len(X_test)
+)
+
+    print(f"Total split samples: {total_split_samples:,}")
+    print(f"Original samples: {len(X):,}")
+
+
+  
     preprocessor = build_preprocessor(
         categorical_features,
         numerical_features
