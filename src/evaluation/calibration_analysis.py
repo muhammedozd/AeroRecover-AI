@@ -150,7 +150,6 @@ def calculate_calibration(
     print("-" * 60)
     print(calibration_table.to_string(index=False))
 
-    print(f"\nBrier Score: {brier_score:.4f}")
 
     return (
         calibration_table,

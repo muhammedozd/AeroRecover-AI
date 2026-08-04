@@ -67,7 +67,7 @@ def load_flights(
         print(f"Yükleniyor: {file_path.name}")
 
 #usecols=columns Yalnızca istediğimiz sütunları okur.
-
+#hazırladığımız veri tipi sözlüğünü pandasa gönderir.
 #low_memory=False Bellek kullanımını optimize eder ve veri tiplerini otomatik olarak belirler.
         monthly_df = pd.read_csv(
             file_path,

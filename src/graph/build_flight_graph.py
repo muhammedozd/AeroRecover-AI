@@ -22,7 +22,7 @@ NODES_PATH = (
 
 EDGES_PATH = (
     GRAPH_OUTPUT_DIR
-    / "tail_edges_2023.csv"
+    / "tail_edges_2023.parquet"
 )
 
 
@@ -270,6 +270,23 @@ def build_tail_edges(
     return edges
 
 
+def save_tail_edges(
+    edges: pd.DataFrame,
+) -> None:
+    GRAPH_OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    edges.to_parquet(
+        EDGES_PATH,
+        index=False,
+        compression="snappy",
+    )
+
+    print(f"Tail edges saved: {EDGES_PATH}")
+
+
 if __name__ == "__main__":
     graph_flights = load_graph_flights()
 
@@ -301,3 +318,7 @@ if __name__ == "__main__":
         "Edge table shape:",
         tail_edges.shape,
     )
+
+    save_tail_edges(
+    tail_edges
+)
