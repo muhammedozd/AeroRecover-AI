@@ -152,12 +152,168 @@ def trace_domino_path(
         path_rows
     )
 
+
+def find_chain_starts(
+    edges: pd.DataFrame,
+    signal_column: str,
+) -> list[str]:
+    active_edges = edges[
+        edges[signal_column] == 1
+    ].copy()
+
+    active_target_ids = set(
+        active_edges["TARGET_FLIGHT_ID"]
+    )
+
+    chain_starts = active_edges.loc[
+        ~active_edges["SOURCE_FLIGHT_ID"].isin(
+            active_target_ids
+        ),
+        "SOURCE_FLIGHT_ID",
+    ].tolist()
+
+    return chain_starts
+
+
+def calculate_chain_length(
+    edge_lookup: pd.DataFrame,
+    start_flight_id: str,
+    max_hops: int = 20,
+):
+    current_flight_id = start_flight_id
+    edge_count = 0
+    cumulative_probability = 1.0
+
+    while (
+        edge_count < max_hops
+        and current_flight_id in edge_lookup.index
+    ):
+        current_edge = edge_lookup.loc[
+            current_flight_id
+        ]
+
+        cumulative_probability *= float(
+            current_edge[
+                "PROPAGATION_PROBABILITY"
+            ]
+        )
+
+        edge_count += 1
+
+        current_flight_id = current_edge[
+            "TARGET_FLIGHT_ID"
+        ]
+
+    return (
+        edge_count,
+        cumulative_probability,
+        current_flight_id,
+    )
+
+def build_chain_summary(
+    edge_lookup: pd.DataFrame,
+    chain_starts: list[str],
+) -> pd.DataFrame:
+    chain_rows = []
+
+    for start_flight_id in chain_starts:
+        (
+            edge_count,
+            cumulative_probability,
+            end_flight_id,
+        ) = calculate_chain_length(
+            edge_lookup=edge_lookup,
+            start_flight_id=start_flight_id,
+        )
+
+        chain_rows.append({
+            "START_FLIGHT_ID": start_flight_id,
+            "END_FLIGHT_ID": end_flight_id,
+            "EDGE_COUNT": edge_count,
+            "FLIGHT_COUNT": edge_count + 1,
+            "CUMULATIVE_PROBABILITY":
+                cumulative_probability,
+        })
+
+    return pd.DataFrame(chain_rows)
+
 def main():
     scored_edges = load_scored_edges()
 
     validate_graph_structure(
         scored_edges
     )
+
+    predicted_chain_starts = find_chain_starts(
+        edges=scored_edges,
+        signal_column="PROPAGATION_ALERT",
+    )
+
+    actual_chain_starts = find_chain_starts(
+        edges=scored_edges,
+        signal_column="ACTUAL_PROPAGATION",
+    )
+    
+
+    print(
+        "Predicted chain starts:",
+        f"{len(predicted_chain_starts):,}",
+    )
+
+    predicted_edges = scored_edges[
+        scored_edges["PROPAGATION_ALERT"] == 1
+    ].copy()
+
+    predicted_edge_lookup = (
+        predicted_edges.set_index(
+            "SOURCE_FLIGHT_ID"
+        )
+    )
+
+    predicted_chains = build_chain_summary(
+    edge_lookup=predicted_edge_lookup,
+    chain_starts=predicted_chain_starts,
+)
+
+    predicted_length_distribution = (
+    predicted_chains["EDGE_COUNT"]
+    .value_counts()
+    .sort_index()
+)
+
+    print("\nPredicted chain length distribution")
+    print("-" * 60)
+    print(predicted_length_distribution)
+
+    actual_edges = scored_edges[
+    scored_edges["ACTUAL_PROPAGATION"] == 1
+].copy()
+
+    actual_edge_lookup = actual_edges.set_index(
+    "SOURCE_FLIGHT_ID"
+)
+
+    actual_chains = build_chain_summary(
+    edge_lookup=actual_edge_lookup,
+    chain_starts=actual_chain_starts,
+)
+
+    actual_length_distribution = (
+    actual_chains["EDGE_COUNT"]
+    .value_counts()
+    .sort_index()
+)
+
+    print("\nActual chain length distribution")
+    print("-" * 60)
+    print(actual_length_distribution)
+
+   
+
+    print(
+    "Actual chain starts:",
+    f"{len(actual_chain_starts):,}",
+)
 
     start_flight_id = (
         "20230904_G4_218_DEN_AVL_1038_190NV"
