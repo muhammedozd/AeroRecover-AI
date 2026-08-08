@@ -124,11 +124,86 @@ def main():
         else 0.0
     )
 
+    matched_chains = (
+    predicted_multi_hop[
+            ["START_FLIGHT_ID", "EDGE_COUNT"]
+        ]
+        .merge(
+            actual_multi_hop[
+                ["START_FLIGHT_ID", "EDGE_COUNT"]
+            ],
+            on="START_FLIGHT_ID",
+            how="inner",
+            suffixes=("_PREDICTED", "_ACTUAL"),
+            validate="one_to_one",
+        )
+    )
+
+    assert len(matched_chains) == tp
+
+    matched_chains["EDGE_COUNT_ERROR"] = (
+        matched_chains["EDGE_COUNT_PREDICTED"]
+        - matched_chains["EDGE_COUNT_ACTUAL"]
+    )
+
+    matched_chains["ABS_EDGE_COUNT_ERROR"] = (
+    matched_chains["EDGE_COUNT_ERROR"].abs()
+)
+
+    exact_length_matches = (
+        matched_chains["EDGE_COUNT_ERROR"] == 0
+    ).sum()
+    exact_length_rate = (
+        exact_length_matches
+        / len(matched_chains)
+    )
+    edge_count_mae = (
+        matched_chains[
+            "ABS_EDGE_COUNT_ERROR"
+        ].mean()
+    )
+
+    underestimated_chains = (
+        matched_chains["EDGE_COUNT_ERROR"] < 0
+    ).sum()
+
+    overestimated_chains = (
+        matched_chains["EDGE_COUNT_ERROR"] > 0
+    ).sum()
+
+    assert (
+        exact_length_matches
+        + underestimated_chains
+        + overestimated_chains
+        == len(matched_chains)
+    )
+
+    print(f"Exact length matches: {exact_length_matches:,}")
+    print(f"Exact length rate: {exact_length_rate:.6f}")
+    print(f"Edge-count MAE: {edge_count_mae:.6f}")
+
+    print(
+        f"Underestimated chains: "
+        f"{underestimated_chains:,}"
+    )
+
+    print(
+        f"Overestimated chains: "
+        f"{overestimated_chains:,}"
+    )
+    print("\nMatched chain lengths")
+    print("-" * 40)
+    print(
+        f"Matched chains: "
+        f"{len(matched_chains):,}"
+    )
+
+
     print(f"Precision: {precision:.6f}")
     print(f"Recall: {recall:.6f}")
     print(f"F1: {f1:.6f}")
 
-    
+
     print("\nMulti-hop chain data")
     print("-" * 40)
 
