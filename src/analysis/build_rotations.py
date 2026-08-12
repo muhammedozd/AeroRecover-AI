@@ -16,7 +16,7 @@ OUTPUT_PATH = (
     / "data"
     / "processed"
     / "rotation_dataset_2023.csv"
-
+# exist_ok=True dosya zaten varsa hata vermeden devam etmesini sağlar.
 )
 OUTPUT_PATH.parent.mkdir(
     parents=True,

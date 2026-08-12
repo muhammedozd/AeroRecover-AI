@@ -269,7 +269,8 @@ def build_tail_edges(
 
     return edges
 
-
+#Snappy, büyük veri tablolarında sık kullanılan
+#hızlı ve kayıpsız bir sıkıştırma algoritmasıdır.
 def save_tail_edges(
     edges: pd.DataFrame,
 ) -> None:

@@ -5,6 +5,12 @@ from math import isfinite
 
 from enum import Enum, IntEnum
 
+class UrgencyLevel(str, Enum):
+    ROUTINE = "ROUTINE"
+    WATCH = "WATCH"
+    URGENT = "URGENT"
+    IMMEDIATE = "IMMEDIATE"
+
 class LikelihoodLevel(str, Enum):
     LOW = "LOW"
     MODERATE = "MODERATE"
@@ -21,7 +27,7 @@ class UrgencyLevel(str, Enum):
     WATCH = "WATCH"
     URGENT = "URGENT"
     IMMEDIATE = "IMMEDIATE"
-
+#Likelihood + Impact + Urgency → Priority
 class PriorityLevel(IntEnum):
     P1_CRITICAL = 1
     P2_HIGH = 2
@@ -39,6 +45,7 @@ class FlightDecisionInput:
     previous_delay_ratio: float
     planned_turnaround: float
     downstream_edge_count: int
+
 
     def __post_init__(self) -> None:
         numeric_values = (
@@ -79,3 +86,12 @@ class FlightDecisionInput:
             raise ValueError(
                 "Downstream edge count cannot be negative."
             )
+
+@dataclass(frozen=True)
+class FlightDecisionAssessment:
+    likelihood: LikelihoodLevel
+    impact: ImpactLevel
+    urgency: UrgencyLevel
+    priority: PriorityLevel
+    
+

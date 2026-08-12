@@ -308,7 +308,19 @@ def main():
     print("-" * 60)
     print(actual_length_distribution)
 
-   
+    predicted_domino_starts = set(
+    predicted_chains.loc[
+        predicted_chains["EDGE_COUNT"] >= 2,
+        "START_FLIGHT_ID",
+    ]
+)
+
+    actual_domino_starts = set(
+    actual_chains.loc[
+        actual_chains["EDGE_COUNT"] >= 2,
+        "START_FLIGHT_ID",
+    ]
+)
 
     print(
     "Actual chain starts:",

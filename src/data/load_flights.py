@@ -78,6 +78,9 @@ def load_flights(
 
         monthly_frames.append(monthly_df)
 
+#concat() data çerçeveleri birleştirir.
+
+
     flights_df = pd.concat(
         monthly_frames,
         ignore_index=True,
