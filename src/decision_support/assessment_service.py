@@ -3,12 +3,17 @@
 from src.decision_support.contracts import (
     FlightDecisionAssessment,
     FlightDecisionInput,
+    FlightDecisionReport,
 )
 from src.decision_support.risk_classification import (
     determine_impact,
     determine_likelihood,
     determine_priority,
     determine_urgency,
+)
+
+from src.decision_support.recommendation_engine import (
+    generate_recommendations,
 )
 
 
@@ -39,4 +44,19 @@ def assess_flight(
         impact=impact,
         urgency=urgency,
         priority=priority,
+    )
+
+def build_decision_report(
+    flight: FlightDecisionInput,
+) -> FlightDecisionReport:
+    assessment = assess_flight(flight)
+
+    recommendations = generate_recommendations(
+        flight,
+        assessment,
+    )
+
+    return FlightDecisionReport(
+        assessment=assessment,
+        recommendations=tuple(recommendations),
     )

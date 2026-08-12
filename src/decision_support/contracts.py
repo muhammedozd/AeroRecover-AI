@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from math import isfinite
-
+from typing import TypedDict
 from enum import Enum, IntEnum
 
 class UrgencyLevel(str, Enum):
@@ -95,3 +95,14 @@ class FlightDecisionAssessment:
     priority: PriorityLevel
     
 
+
+class Recommendation(TypedDict):
+    action: str
+    reason: str
+    priority: PriorityLevel
+
+
+@dataclass(frozen=True)
+class FlightDecisionReport:
+    assessment: FlightDecisionAssessment
+    recommendations: tuple[Recommendation, ...]
