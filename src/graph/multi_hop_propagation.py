@@ -13,6 +13,13 @@ SCORED_EDGES_PATH = (
     / "graph"
     / "scored_tail_edges_2023_validation.parquet"
 )
+PREDICTED_CHAIN_OUTPUT_PATH = (
+    PROJECT_ROOT
+    / "data"
+    / "processed"
+    / "predicted_chain_summary_validation.parquet"
+)
+
 
 F1_OPTIMAL_THRESHOLD = 0.46
 
@@ -29,6 +36,7 @@ def load_scored_edges() -> pd.DataFrame:
         "ACTUAL_PROPAGATION",
     ]
 
+    
     edges = pd.read_parquet(
         SCORED_EDGES_PATH,
         columns=edge_columns,
@@ -273,6 +281,15 @@ def main():
     predicted_chains = build_chain_summary(
     edge_lookup=predicted_edge_lookup,
     chain_starts=predicted_chain_starts,
+)
+    PREDICTED_CHAIN_OUTPUT_PATH.parent.mkdir(
+    parents=True,
+    exist_ok=True,
+)
+
+    predicted_chains.to_parquet(
+    PREDICTED_CHAIN_OUTPUT_PATH,
+    index=False,
 )
 
     predicted_length_distribution = (

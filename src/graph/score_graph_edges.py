@@ -168,11 +168,15 @@ def score_validation_rotations(
     )[:, 1]
 
     scored_rotations = rotations[
-        [
-            "TARGET_FLIGHT_ID",
-        ]
-    ].copy()
-
+    [
+        "TARGET_FLIGHT_ID",
+        "PREV_ARR_DELAY",
+        "TURN_BUFFER",
+        "PREV_DELAY_RATIO",
+        "PLANNED_TURNAROUND",
+    ]
+].copy()
+    
     scored_rotations[
         "PROPAGATION_PROBABILITY"
     ] = probabilities
