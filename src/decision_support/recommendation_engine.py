@@ -1,20 +1,14 @@
 """Operational recommendation engine."""
 
-from typing import TypedDict
 
 from src.decision_support.contracts import (
     FlightDecisionAssessment,
     FlightDecisionInput,
     ImpactLevel,
     PriorityLevel,
+    Recommendation,
     UrgencyLevel,
 )
-
-
-class Recommendation(TypedDict):
-    action: str
-    reason: str
-    priority: PriorityLevel
 
 
 def generate_recommendations(
