@@ -6,7 +6,32 @@ import shap
 import matplotlib.pyplot as plt
 import numpy as np
 
+from src.decision_support.assessment_service import (
+    build_decision_report,
+)
+from src.decision_support.contracts import (
+    FlightDecisionInput,
+)
+
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+MODEL_PATH = PROJECT_ROOT / "models" / "xgboost_propagation_classifier.pkl"
+
+REPLAY_DATA_PATH = (
+    PROJECT_ROOT
+    / "data"
+    / "processed"
+    / "decision_support_replay_validation.parquet"
+)
+
+PREDICTED_CHAINS_PATH = (
+    PROJECT_ROOT
+    / "data"
+    / "processed"
+    / "predicted_chain_summary_validation.parquet"
+)
+
 
 MODEL_PATH = PROJECT_ROOT / "models" / "xgboost_propagation_classifier.pkl"
 
@@ -20,12 +45,33 @@ MODEL_PATH = PROJECT_ROOT / "models" / "xgboost_propagation_classifier.pkl"
 def load_model():
     return joblib.load(MODEL_PATH)
 
+@st.cache_data
+def load_replay_data() -> pd.DataFrame:
+    if not REPLAY_DATA_PATH.exists():
+        raise FileNotFoundError(
+            f"Replay dataset not found: {REPLAY_DATA_PATH}"
+        )
+
+    return pd.read_parquet(
+        REPLAY_DATA_PATH
+    )
 
 @st.cache_resource
 def load_shap_explainer(_model):
     classifier = _model.named_steps["classifier"]
     explainer = shap.TreeExplainer(classifier)
     return explainer
+
+@st.cache_data
+def load_predicted_chains() -> pd.DataFrame:
+    if not PREDICTED_CHAINS_PATH.exists():
+        raise FileNotFoundError(
+            "Predicted graph chain summary was not found."
+        )
+
+    return pd.read_parquet(
+        PREDICTED_CHAINS_PATH
+    )
 
 
 def get_previous_delay_level(delay):
@@ -68,6 +114,94 @@ st.write(
 )
 
 st.subheader("Flight Inputs")
+
+replay_data = load_replay_data()
+
+selected_flight_id = st.selectbox(
+    "Select a historical validation flight",
+    options=replay_data["START_FLIGHT_ID"].tolist(),
+    help=(
+        "Select a predicted-chain start flight from the "
+        "September–October 2023 validation period."
+    ),
+)
+
+selected_rows = replay_data.loc[
+    replay_data["START_FLIGHT_ID"]
+    == selected_flight_id
+]
+
+if len(selected_rows) != 1:
+    st.error(
+        "The selected flight could not be uniquely identified."
+    )
+    st.stop()
+
+selected_flight = selected_rows.iloc[0]
+
+decision_input = FlightDecisionInput(
+    propagation_probability=float(
+        selected_flight["PROPAGATION_PROBABILITY"]
+    ),
+    previous_arrival_delay=float(
+        selected_flight["PREV_ARR_DELAY"]
+    ),
+    turn_buffer=float(
+        selected_flight["TURN_BUFFER"]
+    ),
+    previous_delay_ratio=float(
+        selected_flight["PREV_DELAY_RATIO"]
+    ),
+    planned_turnaround=float(
+        selected_flight["PLANNED_TURNAROUND"]
+    ),
+    downstream_edge_count=int(
+        selected_flight["EDGE_COUNT"]
+    ),
+)
+
+decision_report = build_decision_report(
+    decision_input
+)
+st.subheader("Decision Support Assessment")
+
+probability_column, priority_column = st.columns(2)
+
+with probability_column:
+    st.metric(
+        "Propagation Probability",
+        (
+            f"{decision_input.propagation_probability:.1%}"
+        ),
+    )
+#decision_report.assessment.priority.name nesne içindeki değerleri sırayla takip eder.
+with priority_column:
+    st.metric(
+        "Operational Priority",
+        decision_report.assessment.priority.name,
+    )
+
+likelihood_column, impact_column, urgency_column = (
+    st.columns(3)
+)
+
+with likelihood_column:
+    st.metric(
+        "Likelihood",
+        decision_report.assessment.likelihood.value,
+    )
+
+with impact_column:
+    st.metric(
+        "Network Impact",
+        decision_report.assessment.impact.value,
+    )
+
+with urgency_column:
+    st.metric(
+        "Operational Urgency",
+        decision_report.assessment.urgency.value,
+    )
 
 previous_arrival_delay = st.number_input(
     "Previous Arrival Delay (minutes)",
