@@ -22,11 +22,6 @@ class ImpactLevel(str, Enum):
     MULTI_HOP = "MULTI_HOP"
     NETWORK = "NETWORK"
 
-class UrgencyLevel(str, Enum):
-    ROUTINE = "ROUTINE"
-    WATCH = "WATCH"
-    URGENT = "URGENT"
-    IMMEDIATE = "IMMEDIATE"
 #Likelihood + Impact + Urgency → Priority
 class PriorityLevel(IntEnum):
     P1_CRITICAL = 1
@@ -95,11 +90,15 @@ class FlightDecisionAssessment:
     priority: PriorityLevel
     
 
-
 class Recommendation(TypedDict):
+    action_code: str
     action: str
     reason: str
     priority: PriorityLevel
+    owner: str
+    timing: str
+    objective: str
+    feasibility_note: str
 
 
 @dataclass(frozen=True)
