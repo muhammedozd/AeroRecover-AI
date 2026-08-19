@@ -2,6 +2,8 @@ pandas
 numpy
 matplotlib
 plotly
+kaleido
+Pillow
 scikit-learn
 joblib
 jupyter
@@ -9,3 +11,4 @@ xgboost
 shap
 fastapi
 uvicorn
+reportlab

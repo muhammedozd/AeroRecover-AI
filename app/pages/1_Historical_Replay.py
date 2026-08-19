@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from html import escape
+from io import BytesIO
 import sys
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
+from PIL import Image as PILImage, ImageChops
+import plotly.graph_objects as go
+import plotly.io as pio
 import streamlit as st
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -14,7 +20,14 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.decision_support.assessment_service import build_decision_report
-from src.decision_support.contracts import FlightDecisionInput
+from src.decision_support.contracts import FlightDecisionInput, FlightDecisionReport
+from src.explainability.local_shap import (
+    MODEL_VERSION,
+    LocalShapExplanation,
+    explain_validation_flight,
+    load_model_pipeline,
+)
+from src.reporting.decision_report_pdf import build_decision_report_pdf
 from src.visualization.propagation_map import (
     build_itinerary,
     build_propagation_figure,
@@ -28,6 +41,12 @@ CHAIN_COLUMNS = [
     "SOURCE_FLIGHT_ID", "TARGET_FLIGHT_ID", "CONNECTION_AIRPORT",
     "PROPAGATION_PROBABILITY", "PROPAGATION_ALERT", "PLANNED_CONNECTION_MINUTES",
 ]
+REPLAY_COLUMNS = [
+    "START_FLIGHT_ID", "EDGE_COUNT", "FLIGHT_COUNT", "CUMULATIVE_PROBABILITY",
+    "PROPAGATION_PROBABILITY", "PREV_ARR_DELAY", "TURN_BUFFER",
+    "PREV_DELAY_RATIO", "PLANNED_TURNAROUND",
+]
+TOPOJSON_DIR = PROJECT_ROOT / "src" / "visualization" / "assets" / "topojson"
 
 st.set_page_config(page_title="Historical Replay", page_icon="AR", layout="wide")
 
@@ -76,12 +95,8 @@ st.markdown(
 def load_replay_data() -> pd.DataFrame:
     if not REPLAY_DATA_PATH.exists():
         raise FileNotFoundError(f"Replay dataset not found: {REPLAY_DATA_PATH}")
-    replay = pd.read_parquet(REPLAY_DATA_PATH)
-    required = {
-        "START_FLIGHT_ID", "EDGE_COUNT", "FLIGHT_COUNT", "CUMULATIVE_PROBABILITY",
-        "PROPAGATION_PROBABILITY", "PREV_ARR_DELAY", "TURN_BUFFER",
-        "PREV_DELAY_RATIO", "PLANNED_TURNAROUND",
-    }
+    replay = pd.read_parquet(REPLAY_DATA_PATH, columns=REPLAY_COLUMNS)
+    required = set(REPLAY_COLUMNS)
     missing = required.difference(replay.columns)
     if missing:
         raise ValueError("Replay dataset is missing columns: " + ", ".join(sorted(missing)))
@@ -90,6 +105,7 @@ def load_replay_data() -> pd.DataFrame:
         raise ValueError("Replay dataset contains malformed flight identifiers.")
     replay = replay.copy()
     replay["REPLAY_DATE"] = pd.to_datetime(id_parts[0], format="%Y%m%d", errors="coerce")
+    replay["REPLAY_DATE_ONLY"] = replay["REPLAY_DATE"].dt.date
     replay["AIRLINE"] = id_parts[1]
     return replay
 
@@ -101,28 +117,258 @@ def load_scored_edges() -> pd.DataFrame:
     return pd.read_parquet(SCORED_EDGES_PATH, columns=CHAIN_COLUMNS)
 
 
+@st.cache_resource
+def load_active_edge_lookup() -> pd.DataFrame:
+    """Build the best active downstream edge lookup once per server process."""
+    active_edges = load_scored_edges().loc[
+        lambda frame: frame["PROPAGATION_ALERT"].eq(1), CHAIN_COLUMNS
+    ]
+    if active_edges["SOURCE_FLIGHT_ID"].duplicated().any():
+        active_edges = (
+            active_edges.sort_values("PROPAGATION_PROBABILITY", ascending=False)
+            .drop_duplicates("SOURCE_FLIGHT_ID", keep="first")
+        )
+    return active_edges.set_index("SOURCE_FLIGHT_ID", drop=False)
+
+
 @st.cache_data
 def load_airports() -> pd.DataFrame:
     return load_airport_reference()
 
 
-def trace_predicted_chain(scored_edges: pd.DataFrame, start_flight_id: str, max_hops: int = 20) -> pd.DataFrame:
+@st.cache_resource
+def load_explanation_model():
+    return load_model_pipeline()
+
+
+@st.cache_data(show_spinner=False)
+def load_local_explanation(
+    target_flight_id: str,
+    model_version: str,
+    expected_probability: float,
+    _pipeline,
+) -> LocalShapExplanation:
+    if model_version != MODEL_VERSION:
+        raise ValueError(f"Unsupported explanation model version: {model_version}.")
+    return explain_validation_flight(
+        target_flight_id,
+        pipeline=_pipeline,
+        expected_probability=expected_probability,
+    )
+
+
+def format_feature_value(value: object) -> str:
+    if isinstance(value, float):
+        return f"{value:.3f}"
+    return str(value)
+
+
+def build_shap_figure(explanation: LocalShapExplanation) -> go.Figure:
+    increasing = explanation.contributions.loc[
+        explanation.contributions["shap_value"] > 0
+    ].nlargest(5, "absolute_importance")
+    decreasing = explanation.contributions.loc[
+        explanation.contributions["shap_value"] < 0
+    ].nlargest(5, "absolute_importance")
+    display = pd.concat([increasing, decreasing]).sort_values("shap_value")
+    labels = [
+        f"{row.feature}  |  {format_feature_value(row.feature_value)}"
+        for row in display.itertuples()
+    ]
+    colors = ["#2DD4BF" if value < 0 else "#FB7185" for value in display["shap_value"]]
+    figure = go.Figure(go.Bar(
+        x=display["shap_value"],
+        y=labels,
+        orientation="h",
+        marker_color=colors,
+        text=[f"{value:+.3f}" for value in display["shap_value"]],
+        textposition="outside",
+        customdata=display[["feature", "feature_value", "direction"]],
+        hovertemplate=(
+            "<b>%{customdata[0]}</b><br>Value: %{customdata[1]}<br>"
+            "Direction: %{customdata[2]}<br>SHAP: %{x:+.5f}<extra></extra>"
+        ),
+    ))
+    figure.add_vline(x=0, line_width=1, line_color="#A5BAC9")
+    figure.update_layout(
+        height=max(390, 43 * len(display)),
+        margin={"l": 20, "r": 65, "t": 15, "b": 45},
+        paper_bgcolor="#071827",
+        plot_bgcolor="#0E2A43",
+        font={"color": "#F2F7FB", "size": 12},
+        xaxis={"title": "Contribution to raw model score", "gridcolor": "#245573"},
+        yaxis={"title": None, "automargin": True},
+        showlegend=False,
+    )
+    return figure
+
+
+@st.cache_data(show_spinner=False)
+def render_shap_png(contributions: pd.DataFrame) -> bytes:
+    display = contributions.head(8).sort_values("shap_value")
+    labels = [
+        f"{row.feature} = {format_feature_value(row.feature_value)}"
+        for row in display.itertuples()
+    ]
+    colors = ["#159E91" if value < 0 else "#E65D68" for value in display["shap_value"]]
+    figure, axis = plt.subplots(figsize=(12, 5.4), facecolor="white")
+    axis.barh(labels, display["shap_value"], color=colors)
+    axis.axvline(0, color="#60788A", linewidth=1)
+    axis.set_xlabel("Contribution to raw model score")
+    axis.grid(axis="x", linestyle="--", alpha=0.22)
+    axis.spines[["top", "right", "left"]].set_visible(False)
+    for index, value in enumerate(display["shap_value"]):
+        axis.text(
+            value + (0.025 if value >= 0 else -0.025),
+            index,
+            f"{value:+.3f}",
+            va="center",
+            ha="left" if value >= 0 else "right",
+            fontsize=9,
+        )
+    figure.tight_layout()
+    output = BytesIO()
+    figure.savefig(output, format="png", dpi=240, bbox_inches="tight", facecolor="white")
+    plt.close(figure)
+    return output.getvalue()
+
+
+@st.cache_data(show_spinner=False)
+def render_static_map_png(figure_json: str) -> bytes:
+    """Render a PDF-safe static copy without changing the interactive figure."""
+    static_figure = pio.from_json(figure_json)
+    static_figure.frames = []
+    static_figure.layout.updatemenus = []
+    static_figure.data = tuple(
+        trace for trace in static_figure.data
+        if "Animated predicted propagation marker"
+        not in str(trace.hovertemplate)
+    )
+    label_positions = {
+        "BLI": "top center", "OAK": "top right", "SFO": "top left",
+        "SJC": "bottom right", "LAX": "top right", "LAS": "top center",
+        "SAN": "bottom left", "PHX": "top center",
+    }
+    risk_labels = {
+        "P1": "Critical", "P2": "High", "P3": "Monitor", "P4": "Normal",
+    }
+    for trace in static_figure.data:
+        if trace.mode == "markers+text" and trace.text is not None:
+            trace.textposition = [
+                label_positions.get(str(code), "top center")
+                for code in trace.text
+            ]
+        if trace.name and str(trace.name)[:2] in risk_labels:
+            priority = str(trace.name)[:2]
+            trace.name = f"{priority} - {risk_labels[priority]}"
+    static_figure.update_layout(
+        width=1400,
+        height=700,
+        margin={"l": 20, "r": 20, "t": 40, "b": 20},
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        font={"color": "#17212B", "size": 16},
+        legend={"orientation": "h", "x": 0.02, "y": 0.98},
+    )
+    static_figure.update_geos(
+        bgcolor="#FFFFFF",
+        landcolor="#E8F0F5",
+        lakecolor="#FFFFFF",
+        subunitcolor="#9BB2C2",
+        countrycolor="#7892A5",
+    )
+    previous_topojson = pio.defaults.topojson
+    try:
+        pio.defaults.topojson = TOPOJSON_DIR.resolve().as_uri() + "/"
+        png_bytes = static_figure.to_image(
+            format="png",
+            width=1400,
+            height=700,
+            scale=2,
+        )
+    finally:
+        pio.defaults.topojson = previous_topojson
+
+    with PILImage.open(BytesIO(png_bytes)) as image:
+        rgb_image = image.convert("RGB")
+        white_background = PILImage.new("RGB", rgb_image.size, "white")
+        content_box = ImageChops.difference(rgb_image, white_background).getbbox()
+        if content_box is None:
+            return png_bytes
+        padding = 40
+        left, top, right, bottom = content_box
+        crop_box = (
+            max(0, left - padding),
+            max(0, top - padding),
+            min(rgb_image.width, right + padding),
+            min(rgb_image.height, bottom + padding),
+        )
+        output = BytesIO()
+        rgb_image.crop(crop_box).save(output, format="PNG", optimize=True)
+        return output.getvalue()
+
+
+@st.cache_data(show_spinner=False)
+def build_cached_decision_report_pdf(
+    *,
+    flight_id: str,
+    decision_input: FlightDecisionInput,
+    decision_report: FlightDecisionReport,
+    predicted_chain: pd.DataFrame,
+    cumulative_chain_score: float,
+    map_image_bytes: bytes | None,
+    local_explanation: LocalShapExplanation | None,
+    shap_image_bytes: bytes | None,
+    shap_error_message: str | None,
+) -> bytes:
+    return build_decision_report_pdf(
+        flight_id=flight_id,
+        decision_input=decision_input,
+        decision_report=decision_report,
+        predicted_chain=predicted_chain,
+        cumulative_chain_score=cumulative_chain_score,
+        map_image_bytes=map_image_bytes,
+        local_explanation=local_explanation,
+        shap_image_bytes=shap_image_bytes,
+        shap_error_message=shap_error_message,
+    )
+
+
+@st.cache_data(show_spinner=False)
+def trace_predicted_chain(start_flight_id: str, max_hops: int = 20) -> pd.DataFrame:
     """Follow active predicted edges from a selected historical start flight."""
-    predicted_edges = scored_edges.loc[scored_edges["PROPAGATION_ALERT"] == 1]
+    edge_lookup = load_active_edge_lookup()
     rows: list[dict[str, object]] = []
     current = start_flight_id
     visited: set[str] = set()
     for _ in range(max_hops):
         if current in visited:
             break
-        candidates = predicted_edges.loc[predicted_edges["SOURCE_FLIGHT_ID"] == current]
-        if candidates.empty:
+        if current not in edge_lookup.index:
             break
         visited.add(current)
-        edge = candidates.sort_values("PROPAGATION_PROBABILITY", ascending=False).iloc[0]
-        rows.append(edge.to_dict())
+        edge = edge_lookup.loc[current].to_dict()
+        rows.append(edge)
         current = str(edge["TARGET_FLIGHT_ID"])
     return pd.DataFrame(rows, columns=CHAIN_COLUMNS)
+
+
+def normalize_date_range(value: object) -> tuple[date, date]:
+    """Normalize every supported Streamlit date-input shape to scalar dates."""
+    values = list(value) if isinstance(value, (tuple, list)) else [value]
+    if not values:
+        raise ValueError("Select at least one departure date.")
+
+    def scalar_date(item: object) -> date:
+        if isinstance(item, datetime):
+            return item.date()
+        if isinstance(item, date):
+            return item
+        raise ValueError(f"Unsupported departure date value: {item!r}")
+
+    start = scalar_date(values[0])
+    end = scalar_date(values[1]) if len(values) > 1 and values[1] is not None else start
+    return (start, end) if start <= end else (end, start)
 
 
 def flight_label(flight_id: str) -> str:
@@ -159,6 +405,9 @@ def initialize_replay_state(selected_flight_id: str) -> None:
         st.session_state.replay_flight_id = selected_flight_id
         st.session_state.replay_active_step = 0
         st.session_state.replay_playing = False
+        st.session_state.pop("pdf_report_bytes", None)
+        st.session_state.pop("pdf_report_flight_id", None)
+        st.session_state.pop("pdf_report_filename", None)
 
 
 st.markdown(
@@ -175,7 +424,7 @@ st.markdown(
 
 try:
     replay_data = load_replay_data()
-    scored_edges = load_scored_edges()
+    load_active_edge_lookup()
 except (FileNotFoundError, ValueError, OSError) as exc:
     st.error(str(exc))
     st.stop()
@@ -202,12 +451,13 @@ minimum_probability = st.sidebar.slider(
     "Minimum start-edge probability", 0.0, 1.0, 0.5, 0.05, format="%.0f%%",
 )
 
-if isinstance(date_range, tuple) and len(date_range) == 2:
-    start_date, end_date = date_range
-else:
-    start_date = end_date = date_range
+try:
+    start_date, end_date = normalize_date_range(date_range)
+except ValueError as exc:
+    st.warning(str(exc))
+    st.stop()
 filtered_replays = replay_data.loc[
-    replay_data["REPLAY_DATE"].dt.date.between(start_date, end_date)
+    replay_data["REPLAY_DATE_ONLY"].between(start_date, end_date)
     & (replay_data["AIRLINE"].isin(selected_airlines) if selected_airlines else True)
     & (replay_data["EDGE_COUNT"] >= minimum_edges)
     & (replay_data["PROPAGATION_PROBABILITY"] >= minimum_probability)
@@ -232,7 +482,7 @@ if len(selected_rows) != 1:
     st.stop()
 selected_flight = selected_rows.iloc[0]
 
-predicted_chain = trace_predicted_chain(scored_edges, selected_flight_id)
+predicted_chain = trace_predicted_chain(selected_flight_id)
 missing_chain_columns = set(CHAIN_COLUMNS).difference(predicted_chain.columns)
 if predicted_chain.empty:
     st.error("No active predicted edges were found for the selected chain start.")
@@ -290,6 +540,7 @@ with status_col:
 
 active_step = st.session_state.replay_active_step
 active_edge = predicted_chain.iloc[active_step]
+figure = None
 try:
     airports = load_airports()
     itinerary = build_itinerary(predicted_chain)
@@ -298,18 +549,163 @@ try:
         chain=predicted_chain, coordinates=coordinates, priority=priority_code,
         active_step=active_step,
     )
-except (FileNotFoundError, ValueError, KeyError, IndexError) as exc:
-    st.error(f"The propagation map could not be prepared: {exc}")
-    st.stop()
+except Exception as exc:
+    st.warning(f"The propagation map could not be prepared. Details: {exc}")
+
+selected_target_flight_id = str(predicted_chain.iloc[0]["TARGET_FLIGHT_ID"])
+selected_target_probability = float(predicted_chain.iloc[0]["PROPAGATION_PROBABILITY"])
+local_explanation = None
+shap_error_message = None
+try:
+    local_explanation = load_local_explanation(
+        selected_target_flight_id,
+        MODEL_VERSION,
+        selected_target_probability,
+        load_explanation_model(),
+    )
+except Exception as exc:
+    shap_error_message = str(exc)
+    st.warning(
+        "The local SHAP explanation could not be produced for the selected validation "
+        f"rotation. The PDF remains available without a SHAP chart. Details: {exc}"
+    )
+
+st.markdown('<h2 class="ar-section-title">Decision support assessment</h2>', unsafe_allow_html=True)
+risk_colors = {"P1": "#FF5C6C", "P2": "#FFAA4C", "P3": "#FFD166", "P4": "#48D597"}
+metric_values = [
+    ("Propagation Probability", f"{decision_input.propagation_probability:.1%}", None),
+    ("Operational Priority", decision_report.assessment.priority.name.replace("_", " "), risk_colors[priority_code]),
+    ("Likelihood", decision_report.assessment.likelihood.value, None),
+    ("Network Impact", decision_report.assessment.impact.value.replace("_", " "), None),
+    ("Operational Urgency", decision_report.assessment.urgency.value, None),
+    ("Edge Count", str(len(predicted_chain)), None),
+    ("Flight Count", str(len(predicted_chain) + 1), None),
+    ("Cumulative Chain Score", f"{selected_flight['CUMULATIVE_PROBABILITY']:.1%}", None),
+]
+metric_columns = st.columns(4)
+for index, (label, value, badge_color) in enumerate(metric_values):
+    metric_columns[index % 4].markdown(metric_card(label, value, badge_color), unsafe_allow_html=True)
+
+st.markdown('<h2 class="ar-section-title">Why this prediction?</h2>', unsafe_allow_html=True)
+if local_explanation is not None:
+    st.plotly_chart(
+        build_shap_figure(local_explanation),
+        width="stretch",
+        config={"displayModeBar": False},
+    )
+    increasing = local_explanation.contributions.loc[
+        local_explanation.contributions["shap_value"] > 0
+    ].nlargest(5, "absolute_importance")
+    decreasing = local_explanation.contributions.loc[
+        local_explanation.contributions["shap_value"] < 0
+    ].nlargest(5, "absolute_importance")
+    increasing = increasing.copy()
+    decreasing = decreasing.copy()
+    increasing["feature_value"] = increasing["feature_value"].map(format_feature_value)
+    decreasing["feature_value"] = decreasing["feature_value"].map(format_feature_value)
+    increase_col, decrease_col = st.columns(2)
+    with increase_col:
+        st.markdown("**Top risk-increasing contributions**")
+        st.dataframe(
+            increasing[["feature", "feature_value", "shap_value"]],
+            hide_index=True,
+            width="stretch",
+        )
+    with decrease_col:
+        st.markdown("**Top risk-decreasing contributions**")
+        st.dataframe(
+            decreasing[["feature", "feature_value", "shap_value"]],
+            hide_index=True,
+            width="stretch",
+        )
+    st.caption(
+        "SHAP values explain contributions to the model's raw score. They are not causal "
+        "effects or direct probability-point changes."
+    )
+    with st.expander("SHAP validation details", expanded=False):
+        validation_columns = st.columns(4)
+        validation_columns[0].metric("Model probability", f"{local_explanation.model_probability:.6f}")
+        validation_columns[1].metric("Model raw score", f"{local_explanation.model_raw_score:.6f}")
+        validation_columns[2].metric("SHAP raw score", f"{local_explanation.shap_raw_score:.6f}")
+        validation_columns[3].metric("Reconstruction error", f"{local_explanation.reconstruction_error:.2e}")
+else:
+    st.info("No local explanation is available for this selected validation rotation.")
+
+generate_col, download_col, empty_col = st.columns([1, 1, 2])
+with generate_col:
+    generate_pdf = st.button(
+        "Generate PDF Report",
+        width="stretch",
+        key="generate_decision_report_pdf",
+    )
+
+if generate_pdf:
+    map_image_bytes = None
+    shap_image_bytes = None
+    if figure is not None:
+        try:
+            map_image_bytes = render_static_map_png(figure.to_json())
+        except Exception as exc:
+            st.warning(
+                "The static propagation map could not be added to the PDF. "
+                f"A map-free report can still be generated. Details: {exc}"
+            )
+    else:
+        st.warning("The PDF will be generated without a map because the interactive map is unavailable.")
+
+    if local_explanation is not None:
+        try:
+            shap_image_bytes = render_shap_png(local_explanation.contributions)
+        except Exception as exc:
+            shap_error_message = str(exc)
+            st.warning(
+                "The SHAP chart could not be added to the PDF. "
+                f"The report can still be generated. Details: {exc}"
+            )
+
+    try:
+        pdf_bytes = build_cached_decision_report_pdf(
+            flight_id=selected_flight_id,
+            decision_input=decision_input,
+            decision_report=decision_report,
+            predicted_chain=predicted_chain,
+            cumulative_chain_score=float(selected_flight["CUMULATIVE_PROBABILITY"]),
+            map_image_bytes=map_image_bytes,
+            local_explanation=local_explanation,
+            shap_image_bytes=shap_image_bytes,
+            shap_error_message=shap_error_message,
+        )
+        st.session_state.pdf_report_bytes = pdf_bytes
+        st.session_state.pdf_report_flight_id = selected_flight_id
+        st.session_state.pdf_report_filename = f"aerorecover_{selected_flight_id}_report.pdf"
+    except Exception as exc:
+        st.warning(f"The PDF report could not be generated. Details: {exc}")
+
+if (
+    st.session_state.get("pdf_report_flight_id") == selected_flight_id
+    and st.session_state.get("pdf_report_bytes") is not None
+):
+    with download_col:
+        st.download_button(
+            label="Download PDF Report",
+            data=st.session_state.pdf_report_bytes,
+            file_name=st.session_state.pdf_report_filename,
+            mime="application/pdf",
+            width="stretch",
+            key="download_decision_report_pdf",
+        )
 
 map_col, edge_col = st.columns([7, 3], gap="medium")
 with map_col:
     st.markdown('<h2 class="ar-section-title">Predicted propagation map</h2>', unsafe_allow_html=True)
     st.markdown('<p class="ar-section-note">Map animation &middot; choose 0.5x, 1x, or 2x playback inside the map.</p>', unsafe_allow_html=True)
-    st.plotly_chart(
-        figure, use_container_width=True,
-        config={"displayModeBar": False, "scrollZoom": False},
-    )
+    if figure is not None:
+        st.plotly_chart(
+            figure, use_container_width=True,
+            config={"displayModeBar": False, "scrollZoom": False},
+        )
+    else:
+        st.warning("The interactive propagation map is unavailable for this flight.")
 with edge_col:
     st.markdown('<h2 class="ar-section-title">Active edge</h2>', unsafe_allow_html=True)
     st.markdown('<p class="ar-section-note">Current model-predicted graph transition.</p>', unsafe_allow_html=True)
@@ -345,22 +741,6 @@ for index, edge in predicted_chain.reset_index(drop=True).iterrows():
             """,
             unsafe_allow_html=True,
         )
-
-st.markdown('<h2 class="ar-section-title">Decision support assessment</h2>', unsafe_allow_html=True)
-risk_colors = {"P1": "#FF5C6C", "P2": "#FFAA4C", "P3": "#FFD166", "P4": "#48D597"}
-metric_values = [
-    ("Propagation Probability", f"{decision_input.propagation_probability:.1%}", None),
-    ("Operational Priority", decision_report.assessment.priority.name.replace("_", " "), risk_colors[priority_code]),
-    ("Likelihood", decision_report.assessment.likelihood.value, None),
-    ("Network Impact", decision_report.assessment.impact.value.replace("_", " "), None),
-    ("Operational Urgency", decision_report.assessment.urgency.value, None),
-    ("Edge Count", str(len(predicted_chain)), None),
-    ("Flight Count", str(len(predicted_chain) + 1), None),
-    ("Cumulative Chain Score", f"{selected_flight['CUMULATIVE_PROBABILITY']:.1%}", None),
-]
-metric_columns = st.columns(4)
-for index, (label, value, badge_color) in enumerate(metric_values):
-    metric_columns[index % 4].markdown(metric_card(label, value, badge_color), unsafe_allow_html=True)
 
 st.markdown('<h2 class="ar-section-title">Recommended operational actions</h2>', unsafe_allow_html=True)
 for recommendation in decision_report.recommendations:

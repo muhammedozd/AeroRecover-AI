@@ -292,6 +292,11 @@ def main():
     index=False,
 )
 
+    print(
+    "Predicted chain summary saved to:",
+    PREDICTED_CHAIN_OUTPUT_PATH,
+)
+
     predicted_length_distribution = (
     predicted_chains["EDGE_COUNT"]
     .value_counts()

@@ -281,6 +281,20 @@ def main() -> None:
     print("\nDecision-policy results saved:")
     print(output_path)
 
+    detail_output_path = (
+    PROJECT_ROOT
+    / "results"
+    / "decision_policy_validation_details.parquet"
+)
 
+    evaluation_data.to_parquet(
+    detail_output_path,
+    index=False,
+    compression="snappy",
+)
+
+    print("\nDetailed DSS evaluation saved:")
+    print(detail_output_path)
+    
 if __name__ == "__main__":
     main()
