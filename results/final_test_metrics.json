@@ -1,0 +1,21 @@
+{
+  "sample_count": 805126,
+  "actual_propagations": 49038,
+  "actual_propagation_rate": 0.06090723687969336,
+  "alert_count": 55045,
+  "alert_rate": 0.06836818088100496,
+  "threshold": 0.46,
+  "accuracy": 0.9733197039966415,
+  "precision": 0.7503133799618494,
+  "recall": 0.8422243974060932,
+  "f1": 0.7936166328795289,
+  "roc_auc": 0.9882022709324048,
+  "pr_auc": 0.8543136589954771,
+  "brier_score": 0.018851421773433685,
+  "true_negative": 742344,
+  "false_positive": 13744,
+  "false_negative": 7737,
+  "true_positive": 41301,
+  "evaluation_period": "2023-11-01/2023-12-31",
+  "model": "xgboost_propagation_2023_time_split"
+}
