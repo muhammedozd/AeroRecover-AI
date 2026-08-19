@@ -59,15 +59,6 @@ def load_dataset():
 
     return df
 
-#40 sütun yerine 12 sütun okur 
-df = pd.read_csv(
-    DATA_PATH,
-    usecols=MODEL_COLUMNS,
-    low_memory=False,
-)
-
-# _ ifadesi bu değer döndü ama kullanmayacağım anlamına gelir.
-
 def prepare_validation_data(df):
     """
     Select the September-October validation dataset.
