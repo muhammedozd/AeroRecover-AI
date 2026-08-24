@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.models.rotation_model_contract import MODEL_THRESHOLD, MODEL_VERSION
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -12,21 +14,21 @@ SCORED_EDGES_PATH = (
     / "data"
     / "processed"
     / "graph"
-    / "scored_tail_edges_2023_validation.parquet"
+    / "scored_tail_edges_2023_validation_full_enhanced.parquet"
 )
 
 CHAIN_SUMMARY_PATH = (
     PROJECT_ROOT
     / "data"
     / "processed"
-    / "predicted_chain_summary_validation.parquet"
+    / "predicted_chain_summary_validation_full_enhanced.parquet"
 )
 
 OUTPUT_PATH = (
     PROJECT_ROOT
     / "data"
     / "processed"
-    / "decision_support_replay_validation.parquet"
+    / "decision_support_replay_validation_full_enhanced.parquet"
 )
 
 def load_source_data() -> tuple[
@@ -87,6 +89,8 @@ def build_replay_dataset(
             "be matched to scored graph edges."
         )
 
+    replay_data["MODEL_VERSION"] = MODEL_VERSION
+    replay_data["MODEL_THRESHOLD"] = MODEL_THRESHOLD
     return replay_data
 
 def save_replay_dataset(

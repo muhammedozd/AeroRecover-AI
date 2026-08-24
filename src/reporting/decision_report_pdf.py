@@ -30,6 +30,7 @@ from src.decision_support.contracts import (
     FlightDecisionReport,
 )
 from src.explainability.local_shap import LocalShapExplanation
+from src.models.rotation_model_contract import MODEL_THRESHOLD, MODEL_VERSION
 
 PDF_COLORS = {
     "navy": colors.HexColor("#071827"),
@@ -607,8 +608,8 @@ def build_decision_report_pdf(
                 ("Selected start flight", str(flight_id)),
                 ("Generated at", generated_at),
                 ("Data period", "September-October 2023 validation"),
-                ("Model version", "xgboost_2023_time_split"),
-                ("Operational alert threshold", "0.46"),
+                ("Model version", MODEL_VERSION),
+                ("Operational alert threshold", f"{MODEL_THRESHOLD:.2f}"),
                 ("Operational status", "Historical replay - not live operations"),
             ],
             styles=styles,

@@ -159,19 +159,24 @@ def build_rotations():
 
 
 
-    
     rotation_df["PREV_DELAY_LEVEL"] = pd.cut(
     rotation_df["PREV_ARR_DELAY"],
-    bins=[-1000, -1, 14, 29, 59, 1000],
+    bins=[
+        float("-inf"),
+        -1,
+        14,
+        29,
+        59,
+        float("inf"),
+    ],
     labels=[
         "Early",
         "OnTime",
         "Minor",
         "Moderate",
-        "Severe"
-    ]
+        "Severe",
+    ],
 )
-
     rotation_df["IS_SHORT_TURN"] = (
     rotation_df["PLANNED_TURNAROUND"] < 45
 ).astype(int)

@@ -30,6 +30,56 @@ def build_chains(
     )
 
 
+def evaluate_chain_matching(
+    predicted_chains: pd.DataFrame,
+    observed_chains: pd.DataFrame,
+) -> tuple[dict[str, int | float], pd.DataFrame]:
+    """Compute the validation multi-hop start and length metrics."""
+    predicted_multi_hop = predicted_chains[
+        predicted_chains["EDGE_COUNT"] >= 2
+    ].copy()
+    observed_multi_hop = observed_chains[
+        observed_chains["EDGE_COUNT"] >= 2
+    ].copy()
+    predicted_starts = set(predicted_multi_hop["START_FLIGHT_ID"])
+    observed_starts = set(observed_multi_hop["START_FLIGHT_ID"])
+    tp = len(predicted_starts & observed_starts)
+    fp = len(predicted_starts - observed_starts)
+    fn = len(observed_starts - predicted_starts)
+    precision = tp / (tp + fp) if tp + fp else 0.0
+    recall = tp / (tp + fn) if tp + fn else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    matched = predicted_multi_hop[["START_FLIGHT_ID", "EDGE_COUNT"]].merge(
+        observed_multi_hop[["START_FLIGHT_ID", "EDGE_COUNT"]],
+        on="START_FLIGHT_ID", how="inner",
+        suffixes=("_PREDICTED", "_OBSERVED"), validate="one_to_one",
+    )
+    if len(matched) != tp:
+        raise AssertionError("Matched chain count does not equal true positives.")
+    matched["EDGE_COUNT_ERROR"] = (
+        matched["EDGE_COUNT_PREDICTED"] - matched["EDGE_COUNT_OBSERVED"]
+    )
+    matched["ABS_EDGE_COUNT_ERROR"] = matched["EDGE_COUNT_ERROR"].abs()
+    exact = int(matched["EDGE_COUNT_ERROR"].eq(0).sum())
+    metrics: dict[str, int | float] = {
+        "predicted_multi_hop_starts": len(predicted_starts),
+        "observed_multi_hop_starts": len(observed_starts),
+        "true_positive_starts": tp,
+        "false_positive_starts": fp,
+        "false_negative_starts": fn,
+        "chain_start_precision": precision,
+        "chain_start_recall": recall,
+        "chain_start_f1": f1,
+        "correctly_matched_chain_count": len(matched),
+        "exact_length_matches": exact,
+        "conditional_exact_length_rate": exact / tp if tp else 0.0,
+        "edge_count_mae": float(matched["ABS_EDGE_COUNT_ERROR"].mean()) if tp else 0.0,
+        "underestimated_matched_chains": int(matched["EDGE_COUNT_ERROR"].lt(0).sum()),
+        "overestimated_matched_chains": int(matched["EDGE_COUNT_ERROR"].gt(0).sum()),
+    }
+    return metrics, matched
+
+
 def main():
     scored_edges = load_scored_edges()
 

@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pandas as pd
+from src.models.rotation_model_contract import PROJECT_ROOT
 
 from src.decision_support.contracts import (
     FlightDecisionInput,
@@ -12,21 +13,19 @@ from src.decision_support.assessment_service import (
 )
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
 SCORED_EDGES_PATH = (
     PROJECT_ROOT
     / "data"
     / "processed"
     / "graph"
-    / "scored_tail_edges_2023_validation.parquet"
+    / "scored_tail_edges_2023_validation_full_enhanced.parquet"
 )
 
 CHAIN_SUMMARY_PATH = (
     PROJECT_ROOT
     / "data"
     / "processed"
-    / "predicted_chain_summary_validation.parquet"
+    / "predicted_chain_summary_validation_full_enhanced.parquet"
 )
 
 def load_validation_data() -> tuple[
@@ -268,7 +267,7 @@ def main() -> None:
     output_path = (
     PROJECT_ROOT
     / "results"
-    / "decision_policy_validation.csv"
+    / "decision_policy_validation_full_enhanced.csv"
 )
 
     output_path.parent.mkdir(
@@ -284,7 +283,7 @@ def main() -> None:
     detail_output_path = (
     PROJECT_ROOT
     / "results"
-    / "decision_policy_validation_details.parquet"
+    / "decision_policy_validation_details_full_enhanced.parquet"
 )
 
     evaluation_data.to_parquet(

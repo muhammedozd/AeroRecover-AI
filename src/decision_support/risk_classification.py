@@ -7,6 +7,7 @@ from src.decision_support.contracts import (
     PriorityLevel,
 
 )
+from src.models.rotation_model_contract import MODEL_THRESHOLD
 
 def determine_urgency(
     turn_buffer: float,
@@ -33,7 +34,7 @@ def determine_likelihood(
     if propagation_probability < 0.20:
         return LikelihoodLevel.LOW
 
-    if propagation_probability < 0.46:
+    if propagation_probability < MODEL_THRESHOLD:
         return LikelihoodLevel.MODERATE
 
     if propagation_probability < 0.80:

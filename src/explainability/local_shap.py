@@ -4,28 +4,26 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import exp
-from pathlib import Path
-
-import joblib
 import numpy as np
 import pandas as pd
 import xgboost as xgb
 
-from src.models.train_rotation_model import (
-    CATEGORICAL_FEATURES,
-    NUMERICAL_FEATURES,
+from src.features.rotation_features import build_rotation_model_features
+from src.models.rotation_model_contract import (
+    FEATURE_COLUMNS,
+    MODEL_VERSION,
+    PROJECT_ROOT,
+    RAW_FEATURE_COLUMNS,
+    load_model_pipeline as load_active_model_pipeline,
+    validate_pipeline_contract,
 )
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-MODEL_PATH = PROJECT_ROOT / "models" / "xgboost_propagation_2023_time_split.pkl"
 ROTATION_DATA_PATH = PROJECT_ROOT / "data" / "processed" / "rotation_dataset_2023.csv"
-MODEL_VERSION = "xgboost_2023_time_split"
 FLIGHT_ID_COLUMNS = [
     "FL_DATE", "TAIL_NUM", "OP_UNIQUE_CARRIER", "OP_CARRIER_FL_NUM",
     "ORIGIN", "DEST", "CRS_DEP_TIME",
 ]
-FEATURE_COLUMNS = CATEGORICAL_FEATURES + NUMERICAL_FEATURES
 
 
 @dataclass(frozen=True)
@@ -41,7 +39,7 @@ class LocalShapExplanation:
 
 def load_model_pipeline():
     """Load the exact fitted pipeline used to score validation rotations."""
-    return joblib.load(MODEL_PATH)
+    return load_active_model_pipeline()
 
 
 def _build_target_flight_ids(rows: pd.DataFrame) -> pd.Series:
@@ -65,7 +63,7 @@ def load_single_validation_rotation(
     chunksize: int = 150_000,
 ) -> pd.DataFrame:
     """Return exactly one September-October 2023 model row for a target ID."""
-    usecols = list(dict.fromkeys([*FLIGHT_ID_COLUMNS, *FEATURE_COLUMNS]))
+    usecols = list(dict.fromkeys([*FLIGHT_ID_COLUMNS, *RAW_FEATURE_COLUMNS]))
     matches: list[pd.DataFrame] = []
     for chunk in pd.read_csv(
         ROTATION_DATA_PATH,
@@ -80,7 +78,10 @@ def load_single_validation_rotation(
         if validation.empty:
             continue
         validation_ids = _build_target_flight_ids(validation)
-        matched = validation.loc[validation_ids.eq(target_flight_id), FEATURE_COLUMNS]
+        matched_raw = validation.loc[validation_ids.eq(target_flight_id)].copy()
+        if matched_raw.empty:
+            continue
+        matched, _ = build_rotation_model_features(matched_raw)
         if not matched.empty:
             matches.append(matched.copy())
 
@@ -101,8 +102,9 @@ def _original_feature_mapping(preprocessor) -> list[str]:
             continue
         output_slice = preprocessor.output_indices_[transformer_name]
         expected_count = output_slice.stop - output_slice.start
-        if hasattr(transformer, "categories_"):
-            for column, categories in zip(columns, transformer.categories_):
+        one_hot = getattr(transformer, "named_steps", {}).get("one_hot")
+        if one_hot is not None and hasattr(one_hot, "categories_"):
+            for column, categories in zip(columns, one_hot.categories_):
                 mapping.extend([str(column)] * len(categories))
         elif expected_count == len(columns):
             mapping.extend(str(column) for column in columns)
@@ -130,6 +132,7 @@ def explain_validation_flight(
 ) -> LocalShapExplanation:
     """Explain the exact validation row used by the fitted model pipeline."""
     model_pipeline = pipeline if pipeline is not None else load_model_pipeline()
+    validate_pipeline_contract(model_pipeline)
     model_row = load_single_validation_rotation(target_flight_id)
     if len(model_row) != 1:
         raise ValueError("Local SHAP requires exactly one model input row.")
