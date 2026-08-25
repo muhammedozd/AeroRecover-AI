@@ -1,169 +1,92 @@
 AeroRecover AI
 
-Explainable Flight-Delay Propagation Decision Support
+Explainable decision support for flight-delay propagation across aircraft rotations.
 
-AeroRecover AI is a research-grade decision-support prototype for predicting whether delay attributed to a late inbound aircraft will propagate to its next flight. It combines flight-level XGBoost predictions, aircraft-rotation graphs, SHAP explanations, multi-hop chain tracing, operational prioritization, a historical Streamlit replay, and downloadable decision reports.
+AeroRecover AI predicts whether delay from an inbound aircraft will propagate to its next flight, traces the resulting risk through aircraft-rotation chains, and presents explainable operational recommendations.
 
-Scope: Historical decision support and research demonstration. AeroRecover AI is not a live airline operations, dispatch, or safety-critical system.
+Research prototype based on historical data. It is not a live airline operations or safety-critical system.
 
-At a Glance
+Highlights
 
-Item
+6.8 million 2023 BTS flight records processed
 
-Result
+4.8 million physically connected aircraft-rotation samples
 
-Raw 2023 BTS flight records
+Chronological train, validation, and locked-test design
 
-6,847,899
+Leakage-audited 24-feature XGBoost model
 
-Aircraft-rotation samples
+SHAP-based local and global explanations
 
-4,796,459
+Multi-hop aircraft-rotation graph analysis
 
-Model features
+P1–P4 operational prioritization
 
-24
+Historical Streamlit replay and downloadable PDF reports
 
-Locked-test ROC-AUC
+Workflow
 
-0.9914
+BTS flight records
+        ↓
+Aircraft-rotation construction
+        ↓
+XGBoost propagation prediction
+        ↓
+SHAP explanation + multi-hop graph tracing
+        ↓
+Operational priority and recommendations
+        ↓
+Historical Streamlit replay and PDF report
 
-Locked-test average precision
+Each prediction applies to one pair of consecutive flights operated by the same aircraft. Alerted edges are connected chronologically to reveal possible downstream propagation chains.
 
-0.9030
+Data and Evaluation Design
 
-Locked-test F1
+The project uses the 2023 U.S. Bureau of Transportation Statistics On-Time Performance dataset. Random splitting was not used.
 
-0.8128
-
-Multi-hop chain-start F1
-
-0.7089
-
-System Overview
-
-flowchart TD
-    A[BTS flight records] --> B[Aircraft rotations]
-    B --> C[Full-enhanced XGBoost]
-    C --> D[Scored rotation graph]
-    C --> E[SHAP explanations]
-    D --> F[Multi-hop tracing]
-    E --> G[Decision support]
-    F --> G
-    G --> H[Historical replay and PDF report]
-
-The model scores one physically connected aircraft-rotation edge at a time. Alerted edges are then connected chronologically to represent predicted downstream propagation chains. A separate decision layer combines model likelihood, graph impact, and turnaround urgency into a P1–P4 operational priority and human-reviewable recommendations.
-
-Research Design
-
-Dataset
-
-The project uses the 2023 U.S. Bureau of Transportation Statistics On-Time Performance dataset.
-
-Stage
-
-Records
-
-Raw flight records
-
-6,847,899
-
-Valid flights after eligibility rules
-
-6,743,404
-
-Physically connected rotation samples
-
-4,796,459
-
-Chronological Split
-
-Random splitting was not used. Model development and evaluation follow operational time order.
-
-Split
+Dataset stage
 
 Period
 
 Samples
 
-Purpose
+Raw flight records
+
+Jan–Dec 2023
+
+6,847,899
+
+Rotation samples
+
+Jan–Dec 2023
+
+4,796,459
 
 Training
 
-January–August 2023
+Jan–Aug 2023
 
 3,159,311
 
-Parameter learning
-
 Validation
 
-September–October 2023
+Sep–Oct 2023
 
 832,022
 
-Model and threshold selection
-
 Locked test
 
-November–December 2023
+Nov–Dec 2023
 
 805,126
 
-One-pass final evaluation
-
-Prediction Target
-
-The positive class is defined as:
-
-IS_DELAY_PROPAGATED = 1
-
-when the downstream flight contains at least 15 minutes of BTS-reported LATE_AIRCRAFT_DELAY.
-
-The predicted probability belongs to a single consecutive aircraft-rotation edge. It is neither a causal effect nor a calibrated joint probability for an entire multi-flight chain.
-
-Full-Enhanced Prediction Model
-
-The production research model is an XGBoost classifier using 24 leakage-audited features. Its validation-selected threshold, 0.47, was frozen before the locked November–December test was scored.
-
-Feature groups include:
-
-aircraft-rotation state and previous-flight delay;
-
-planned turnaround capacity and remaining buffer;
-
-carrier, destination, distance, and flight context;
-
-cyclical schedule, calendar, and weekend context;
-
-operational interaction features derived only from information available in the constructed rotation record.
-
-<details>
-<summary>Show the exact 24-feature contract</summary>
-
-PREV_DEST, PREV_DELAY_LEVEL, DEST, OP_UNIQUE_CARRIER, ROTATION_POSITION, PREV_ARR_DELAY, PREV_ARR_MIN, PREV_CRS_ARR_MIN, PLANNED_TURNAROUND, TURN_BUFFER, PREV_DELAY_RATIO, HAS_BUFFER, IS_SHORT_TURN, PREV_DELAYED, DISTANCE, CRS_DEP_MIN_SAFE, CRS_DEP_TIME_SIN, CRS_DEP_TIME_COS, DAY_OF_WEEK, MONTH, IS_WEEKEND, DELAY_EXCESS_OVER_TURN, AVAILABLE_BUFFER_RATIO, and PREV_DELAY_SHORT_TURN_INTERACTION.
-
-</details>
+The positive class represents at least 15 minutes of BTS-reported late-aircraft delay on the downstream flight. The decision threshold was selected on validation data and frozen at 0.47 before final testing.
 
 Locked-Test Performance
-
-Results below come from the untouched November–December 2023 test period using the frozen 0.47 threshold.
 
 Metric
 
 Result
-
-Samples
-
-805,126
-
-Positive propagation events
-
-49,038
-
-Alert rate
-
-6.71%
 
 Accuracy
 
@@ -177,7 +100,7 @@ Recall
 
 0.8544
 
-F1
+F1 score
 
 0.8128
 
@@ -185,39 +108,23 @@ ROC-AUC
 
 0.9914
 
-Average precision / PR-AUC
+PR-AUC
 
 0.9030
-
-Log loss
-
-0.0543
 
 Brier score
 
 0.0164
 
-Confusion-matrix counts: TN = 743,928, FP = 12,160, FN = 7,140, and TP = 41,898.
+These results were obtained on the untouched November–December 2023 test period using the frozen enhanced model and threshold.
 
-Aircraft-Rotation Graph and Multi-Hop Evaluation
+Multi-Hop Graph Evaluation
 
-Each flight is represented as a vertex. A directed edge connects two consecutive flights only when they are operated by the same aircraft and the preceding destination matches the downstream origin.
+Flights are graph nodes, while consecutive flights operated by the same aircraft form directed edges.
 
-Locked-test graph result
+Metric
 
-Value
-
-Physical edges
-
-832,421
-
-Eligible edges
-
-808,124
-
-Scored edges
-
-805,126
+Result
 
 Chain-start precision
 
@@ -235,54 +142,43 @@ Exact matched chain-length rate
 
 0.8896
 
-Graph metrics evaluate the start and extent of predicted propagation sequences. They are stricter than flight-level classification metrics and should not be interpreted interchangeably.
+Graph evaluation is stricter than flight-level classification because it measures whether the system identifies both the beginning and the extent of a propagation sequence.
 
-Explainable Decision Support
+Decision-Support Interface
 
-For a selected historical rotation, AeroRecover AI provides:
+The Streamlit dashboard provides:
 
-edge-level propagation probability;
+historical flight, airline, route, and risk filters;
 
-likelihood, downstream impact, and urgency assessment;
+animated predicted propagation maps;
 
-P1 Critical to P4 Normal operational priority;
+likelihood, impact, urgency, and P1–P4 priority cards;
 
-local SHAP risk-increasing and risk-decreasing contributions;
+local SHAP risk explanations;
 
-predicted downstream rotation chain;
+multi-hop domino-chain visualization;
 
-recommendation owner, timing, objective, and feasibility note;
+recommendation owner, timing, objective, and feasibility notes;
 
-downloadable PDF decision report.
+downloadable PDF decision reports.
 
-SHAP values explain contributions to the model's raw score. They are not causal effects or direct percentage-point changes in probability.
-
-Historical Replay Dashboard
-
-The Streamlit interface includes historical date, carrier, route, graph-length, and risk filters; animated propagation-map playback; decision cards; local explanations; domino-chain visualization; structured recommendations; and PDF report generation.
-
-Map movement is coordinate interpolation used to communicate graph order. It does not represent recorded aircraft trajectories.
+Recommendations are advisory and require confirmation by qualified operational personnel.
 
 Project Structure
 
-app/                         Streamlit application and replay page
-models/                      Frozen model artifacts and contracts
-results/                     Evaluation outputs and paper figures
-reports/                     Audit, reproducibility, and metric reports
-src/analysis/                Rotation-dataset construction
-src/features/                Shared enhanced feature engineering
-src/models/                  Training and final-model evaluation
-src/evaluation/              Flight, graph, policy, and error analysis
-src/graph/                   Edge scoring and multi-hop tracing
-src/decision_support/        Assessment and recommendation logic
-src/explainability/          Local and global SHAP analysis
-src/reporting/               PDF decision-report generation
-src/visualization/           Replay maps and scientific figures
-tests/                       Feature-contract and integration tests
+app/                    Streamlit application
+src/analysis/           Rotation construction
+src/features/           Feature engineering
+src/models/             Model training and contracts
+src/evaluation/         Flight, graph, policy, and error evaluation
+src/graph/              Graph scoring and multi-hop tracing
+src/decision_support/   Priority and recommendation logic
+src/explainability/     SHAP explanations
+src/reporting/          PDF report generation
+src/visualization/      Maps and scientific figures
+tests/                  Automated tests
 
-Quick Start
-
-1. Clone and create an environment
+Installation
 
 git clone <repository-url>
 cd AeroRecover-AI
@@ -290,54 +186,30 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 
-2. Run the dashboard
+Run the dashboard:
 
 python -m streamlit run app\streamlit_app.py
 
-3. Run the automated tests
+Run the tests:
 
 python -m pytest -q
 
-Large BTS source files, processed datasets, and generated model/report artifacts may be excluded from version control. If an artifact is absent, reproduce it using the corresponding module under src/ before launching dependent workflows.
-
-Reproducibility Controls
-
-chronological training, validation, and locked-test periods;
-
-threshold selection restricted to validation data;
-
-a frozen 24-feature model contract;
-
-leakage and missing-value audits;
-
-consistent feature engineering across training, scoring, SHAP, graph, replay, and reporting paths;
-
-saved metric, graph, priority, error-analysis, and paper-figure manifests;
-
-automated tests for feature parity and inference integration.
-
 Limitations
 
-The final model uses BTS operational records and does not include live crew, gate, maintenance, airport-resource, or passenger-connection status.
+The final model does not use live crew, gate, maintenance, passenger-connection, or airport-resource data.
 
-Weather is not part of the final 24-feature model.
+Weather is not included in the final model.
 
-Historical replay is not a live forecasting environment.
+The replay interface visualizes historical model output, not recorded trajectories or live forecasts.
 
-Recommendations have not been validated in a real airline operations-control trial.
+Probabilities and SHAP values describe predictive associations, not causal effects.
 
-Predictive associations, probabilities, and SHAP values must not be interpreted as causal effects.
-
-Resource feasibility must be confirmed by qualified operational personnel using current information.
+Recommendations have not yet been validated in a live operations-control trial.
 
 Future Work
 
-Planned research directions include multi-flight history, airport congestion and weather context, resource-constrained recovery optimization, richer graph-learning methods, probability recalibration under distribution shift, and validation with real operational stakeholders.
+Future development may include airport congestion and weather context, multi-flight history, resource-constrained recovery optimization, richer graph-learning methods, and validation with airline or airport operational stakeholders.
 
 Responsible Use
 
-AeroRecover AI supports research and historical decision analysis. It must not issue automatic operational commands or replace qualified decisions involving safety, dispatch, crew legality, maintenance, airport capacity, regulation, or network recovery.
-
-Citation
-
-An IEEE-style manuscript accompanies this project. Add the final manuscript to the repository documentation or release assets and cite that version when reusing the methodology or results
+AeroRecover AI is intended for research and human-in-the-loop decision support. It must not replace qualified decisions involving safety, dispatch, crew legality, maintenance, regulation, or network recovery.
