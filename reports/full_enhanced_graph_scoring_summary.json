@@ -1,0 +1,11 @@
+{
+  "model_version": "xgboost_2023_full_enhanced",
+  "threshold": 0.47,
+  "validation_edge_count": 836210,
+  "matched_score_count": 832022,
+  "missing_score_count": 4188,
+  "match_rate": 0.9949916886906399,
+  "duplicate_source_flight_ids": 0,
+  "duplicate_target_flight_ids": 0,
+  "duplicate_edge_pairs": 0
+}

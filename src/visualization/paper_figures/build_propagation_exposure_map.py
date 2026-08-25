@@ -19,9 +19,11 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 
-from paper_style import PAPER_COLORS, PROBABILITY_CMAP, PROJECT_ROOT, apply_paper_style, save_figure
+from src.visualization.paper_figures.paper_style import (
+    PAPER_COLORS, PROBABILITY_CMAP, PROJECT_ROOT, apply_paper_style, save_figure,
+)
 
-EDGE_PATH = PROJECT_ROOT / "data/processed/graph/scored_tail_edges_2023_validation.parquet"
+EDGE_PATH = PROJECT_ROOT / "data/processed/graph/scored_tail_edges_2023_validation_full_enhanced.parquet"
 AIRPORT_PATH = PROJECT_ROOT / "data/processed/reference/us_airport_coordinates.parquet"
 TOPO_PATH = PROJECT_ROOT / "src/visualization/assets/topojson/usa_110m.json"
 TOP_N_ROUTES = 150
@@ -134,7 +136,7 @@ def main() -> None:
         highlighted = rank < TOP_N_HIGHLIGHTED_ROUTES
         color = PAPER_COLORS["navy"] if highlighted else "#7890A4"
         ax.add_collection(LineCollection([segment], colors=[to_rgba(color, float(alpha))], linewidths=[width], zorder=1, rasterized=False))
-    norm = Normalize(vmin=0.46, vmax=0.95)
+    norm = Normalize(vmin=0.47, vmax=0.95)
     sizes = 10 + 95 * np.sqrt(airports.ALERTED_ROTATION_EXPOSURE) / np.sqrt(airports.ALERTED_ROTATION_EXPOSURE.max())
     scatter = ax.scatter(airports.longitude_deg, airports.latitude_deg, s=sizes,
                          c=airports.MEAN_PROPAGATION_PROBABILITY, cmap=PROBABILITY_CMAP, norm=norm,
@@ -166,7 +168,7 @@ def main() -> None:
     for spine in ax.spines.values(): spine.set_color(PAPER_COLORS["border"]); spine.set_linewidth(.6)
     fig.text(.5, .012, "The airport-level network is an aggregated visualization of alerted flight-level aircraft-rotation edges. Airports are used only for spatial aggregation;\nthe prediction model and multi-hop traversal operate on individual flight vertices.", ha="center", va="bottom", fontsize=8, color=PAPER_COLORS["muted_text"])
     fig.subplots_adjust(bottom=.13)
-    save_figure(fig, "predicted_propagation_exposure_network")
+    save_figure(fig, "propagation_exposure_network_enhanced")
     plt.close(fig)
 
 

@@ -1,0 +1,14 @@
+{
+  "model_version": "xgboost_2023_full_enhanced",
+  "threshold": 0.47,
+  "predicted_multi_hop_starts": 15285,
+  "actual_multi_hop_starts": 14775,
+  "true_positive_starts": 11364,
+  "false_positive_starts": 3921,
+  "false_negative_starts": 3411,
+  "chain_start_precision": 0.7434739941118744,
+  "chain_start_recall": 0.7691370558375634,
+  "chain_start_f1": 0.7560878243512975,
+  "exact_length_rate": 0.9011791622668075,
+  "edge_count_mae": 0.1109644491376276
+}

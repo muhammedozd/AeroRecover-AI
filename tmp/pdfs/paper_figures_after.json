@@ -1,0 +1,94 @@
+[
+  {
+    "stem": "aerorecover_system_architecture",
+    "pdf_before": 63700,
+    "pdf_after": 54368,
+    "png_before": 309110,
+    "png_after": 327141,
+    "pixels": [
+      6537,
+      2268
+    ],
+    "dpi": [
+      600.0,
+      600.0
+    ],
+    "pdf_images": 0,
+    "vector_drawings": 29,
+    "fonts": [
+      [
+        "ttf",
+        "Type0"
+      ]
+    ]
+  },
+  {
+    "stem": "aircraft_rotation_propagation_example",
+    "pdf_before": 56095,
+    "pdf_after": 56073,
+    "png_before": 148145,
+    "png_after": 236801,
+    "pixels": [
+      5328,
+      1667
+    ],
+    "dpi": [
+      600.0,
+      600.0
+    ],
+    "pdf_images": 0,
+    "vector_drawings": 14,
+    "fonts": [
+      [
+        "ttf",
+        "Type0"
+      ]
+    ]
+  },
+  {
+    "stem": "predicted_propagation_exposure_network",
+    "pdf_before": 136044,
+    "pdf_after": 137417,
+    "png_before": 1364961,
+    "png_after": 2104491,
+    "pixels": [
+      6537,
+      3721
+    ],
+    "dpi": [
+      600.0,
+      600.0
+    ],
+    "pdf_images": 1,
+    "vector_drawings": 542,
+    "fonts": [
+      [
+        "ttf",
+        "Type0"
+      ]
+    ]
+  },
+  {
+    "stem": "propagation_exposure_network_paper",
+    "pdf_before": 125721,
+    "pdf_after": 129126,
+    "png_before": 1914780,
+    "png_after": 1900406,
+    "pixels": [
+      7374,
+      3997
+    ],
+    "dpi": [
+      600.0,
+      600.0
+    ],
+    "pdf_images": 0,
+    "vector_drawings": 731,
+    "fonts": [
+      [
+        "ttf",
+        "Type0"
+      ]
+    ]
+  }
+]

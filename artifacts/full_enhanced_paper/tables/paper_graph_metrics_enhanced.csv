@@ -1,0 +1,15 @@
+metric,value
+Physical edges,832421.0
+Eligible edges,808124.0
+Scored edges,805126.0
+Eligible-edge score coverage,0.9963
+Predicted multi-hop starts,12430.0
+Actual multi-hop starts,11216.0
+TP starts,8381.0
+FP starts,4049.0
+FN starts,2835.0
+Chain-start precision,0.6743
+Chain-start recall,0.7472
+Chain-start F1,0.7089
+Exact matched chain-length rate,0.8896
+Chain-length MAE,0.123

@@ -1,0 +1,37 @@
+Enhanced Rotation Model Audit
+=============================
+DECISION: PASS
+Reason: No leakage was found and full enhanced validation contribution was confirmed.
+Weather features used: no
+Leakage feature audit: passed
+Saved-model feature contract: passed
+Train/validation identical row indices across models: yes
+Train rows: 3,159,311
+Validation rows: 832,022
+Test predictions generated during audit: no
+Previously locked test report rows read: 11
+PREV_DELAY_LEVEL missing rows: 0
+Missing-value cause: all values fall outside pd.cut bounds [-1000, 1000]
+
+Exact FULL_ENHANCED features:
+PREV_DEST, PREV_DELAY_LEVEL, DEST, OP_UNIQUE_CARRIER, ROTATION_POSITION, PREV_ARR_DELAY, PREV_ARR_MIN, PREV_CRS_ARR_MIN, PLANNED_TURNAROUND, TURN_BUFFER, PREV_DELAY_RATIO, HAS_BUFFER, IS_SHORT_TURN, PREV_DELAYED, DISTANCE, CRS_DEP_MIN_SAFE, CRS_DEP_TIME_SIN, CRS_DEP_TIME_COS, DAY_OF_WEEK, MONTH, IS_WEEKEND, DELAY_EXCESS_OVER_TURN, AVAILABLE_BUFFER_RATIO, PREV_DELAY_SHORT_TURN_INTERACTION
+
+Operational feature checks
+==========================
+DELAY_EXCESS_OVER_TURN: formula_match=yes, infinite=0, negative=0, missing=0
+AVAILABLE_BUFFER_RATIO: formula_match=yes, infinite=0, negative=0, missing=0
+PREV_DELAY_SHORT_TURN_INTERACTION: formula_match=yes, infinite=0, negative=0, missing=0
+PLANNED_TURNAROUND zero denominators: 0
+
+Validation-selected comparison:
+                                 MODEL          THRESHOLD_SET  THRESHOLD  ROC_AUC  ROC_AUC_MINUS_BASELINE   PR_AUC  PR_AUC_MINUS_BASELINE  LOG_LOSS  LOG_LOSS_MINUS_BASELINE  BRIER_SCORE  BRIER_SCORE_MINUS_BASELINE  PRECISION  PRECISION_MINUS_BASELINE   RECALL  RECALL_MINUS_BASELINE       F1  F1_MINUS_BASELINE  TRUE_NEGATIVE  TRUE_NEGATIVE_MINUS_BASELINE  FALSE_POSITIVE  FALSE_POSITIVE_MINUS_BASELINE  FALSE_NEGATIVE  FALSE_NEGATIVE_MINUS_BASELINE  TRUE_POSITIVE  TRUE_POSITIVE_MINUS_BASELINE
+                              BASELINE VALIDATION_SELECTED_F1   0.460000 0.987960                0.000000 0.879769               0.000000  0.070224                 0.000000     0.020773                    0.000000   0.790681                  0.000000 0.842247               0.000000 0.815650           0.000000         754800                             0           14079                              0            9961                              0          53182                             0
+          BASELINE_PLUS_FLIGHT_CONTEXT VALIDATION_SELECTED_F1   0.460000 0.991372                0.003411 0.920141               0.040372  0.059791                -0.010433     0.017949                   -0.002824   0.811412                  0.020731 0.857815               0.015568 0.833968           0.018319         756290                          1490           12589                          -1490            8978                           -983          54165                           983
+                BASELINE_PLUS_SCHEDULE VALIDATION_SELECTED_F1   0.450000 0.987914               -0.000046 0.878952              -0.000816  0.070441                 0.000217     0.020828                    0.000056   0.783575                 -0.007106 0.851765               0.009518 0.816248           0.000598         754024                          -776           14855                            776            9360                           -601          53783                           601
+BASELINE_PLUS_OPERATIONAL_INTERACTIONS VALIDATION_SELECTED_F1   0.460000 0.987970                0.000010 0.879383              -0.000386  0.070201                -0.000023     0.020780                    0.000007   0.790197                 -0.000484 0.842833               0.000586 0.815667           0.000017         754749                           -51           14130                             51            9924                            -37          53219                            37
+                         FULL_ENHANCED VALIDATION_SELECTED_F1   0.470000 0.991383                0.003423 0.920518               0.040749  0.059804                -0.010420     0.017932                   -0.002841   0.812679                  0.021998 0.856310               0.014063 0.833925           0.018275         756416                          1616           12463                          -1616            9073                           -888          54070                           888
+
+Metric direction: positive differences are favorable for ROC-AUC, PR-AUC, precision,
+recall, and F1; negative differences are favorable for log loss and Brier score.
+Recommendation: the enhanced model is a main-system candidate, subject to fixing and
+revalidating the PREV_DELAY_LEVEL outer-bin issue before promotion.

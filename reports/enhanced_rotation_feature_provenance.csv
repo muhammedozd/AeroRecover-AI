@@ -1,0 +1,25 @@
+FEATURE,FEATURE_GROUP,SOURCE_COLUMNS,AVAILABLE_AT_PREDICTION_TIME,LEAKAGE_RISK,NOTES
+PREV_DEST,baseline_previous_flight,DEST shifted within tail/date,True,LOW,Previous flight destination; known at prediction time.
+PREV_DELAY_LEVEL,baseline_previous_flight,PREV_ARR_DELAY,True,LOW,Previous arrival delay bucket.
+DEST,flight_context,DEST,True,LOW,Current flight scheduled destination.
+OP_UNIQUE_CARRIER,flight_context,OP_UNIQUE_CARRIER,True,LOW,Published operating carrier.
+ROTATION_POSITION,baseline_schedule,"TAIL_NUM, FL_DATE, CRS_DEP_TIME",True,LOW,Scheduled rotation order.
+PREV_ARR_DELAY,baseline_previous_flight,ARR_DELAY shifted within tail/date,True,LOW,Realized delay of the already-arrived previous flight.
+PREV_ARR_MIN,baseline_previous_flight,ARR_TIME shifted within tail/date,True,LOW,Realized arrival time of the previous flight.
+PREV_CRS_ARR_MIN,baseline_schedule,CRS_ARR_TIME shifted within tail/date,True,LOW,Previous flight scheduled arrival time.
+PLANNED_TURNAROUND,baseline_schedule,"CRS_DEP_TIME, PREV_CRS_ARR_MIN",True,LOW,"Scheduled turnaround, adjusted across midnight."
+TURN_BUFFER,baseline_operational,"PLANNED_TURNAROUND, PREV_ARR_DELAY",True,LOW,Scheduled turn remaining after positive previous delay.
+PREV_DELAY_RATIO,baseline_operational,"PREV_ARR_DELAY, PLANNED_TURNAROUND",True,LOW,Positive previous delay divided by scheduled turn.
+HAS_BUFFER,baseline_operational,TURN_BUFFER,True,LOW,Indicator that turn buffer is positive.
+IS_SHORT_TURN,baseline_schedule,PLANNED_TURNAROUND,True,LOW,Scheduled turn shorter than 45 minutes.
+PREV_DELAYED,baseline_previous_flight,PREV_ARR_DELAY,True,LOW,Previous flight delay of at least 15 minutes.
+DISTANCE,flight_context,DISTANCE,True,LOW,Published route distance.
+CRS_DEP_MIN_SAFE,schedule,CRS_DEP_TIME,True,LOW,Validated scheduled departure minute of day.
+CRS_DEP_TIME_SIN,schedule,CRS_DEP_TIME,True,LOW,"Sine encoding using a 1,440-minute day."
+CRS_DEP_TIME_COS,schedule,CRS_DEP_TIME,True,LOW,"Cosine encoding using a 1,440-minute day."
+DAY_OF_WEEK,schedule,FL_DATE,True,LOW,Calendar weekday of the scheduled flight date.
+MONTH,schedule,FL_DATE,True,LOW,Calendar month of the scheduled flight date.
+IS_WEEKEND,schedule,FL_DATE,True,LOW,Saturday/Sunday indicator.
+DELAY_EXCESS_OVER_TURN,operational_interaction,"PREV_ARR_DELAY, PLANNED_TURNAROUND",True,LOW,Positive previous delay exceeding scheduled turn.
+AVAILABLE_BUFFER_RATIO,operational_interaction,"PREV_ARR_DELAY, PLANNED_TURNAROUND",True,LOW,Positive remaining buffer divided by scheduled turn.
+PREV_DELAY_SHORT_TURN_INTERACTION,operational_interaction,"PREV_ARR_DELAY, IS_SHORT_TURN",True,LOW,Positive previous delay multiplied by short-turn indicator.

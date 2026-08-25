@@ -1,0 +1,45 @@
+LOCKED TEST GRAPH AND P1-P4 POLICY EVALUATION
+================================================
+Frozen model: xgboost_propagation_2023_time_split.pkl
+Fixed threshold: tau=0.46
+Period verified: 2023-11-01 through 2023-12-31 (inclusive)
+Sample count verified: 805,126
+No model retraining or test-set tuning was performed.
+Edge-score coverage uses all physical test edges as its denominator; eligible-edge coverage is also reported separately.
+Conditional exact-length rate is calculated only over correctly matched chain starts.
+
+GRAPH METRICS
+-------------
+                         metric                 value
+              evaluation_period 2023-11-01/2023-12-31
+                      threshold                  0.46
+            locked_test_samples                805126
+            physical_test_edges                832421
+propagation_eligible_test_edges                808124
+              scored_test_edges                805126
+            edge_score_coverage               0.96721
+   eligible_edge_score_coverage               0.99629
+      predicted_chain_summaries                 35637
+       observed_chain_summaries                 31518
+     predicted_multi_hop_starts                 12430
+      observed_multi_hop_starts                 11216
+           true_positive_starts                  8381
+          false_positive_starts                  4049
+          false_negative_starts                  2835
+          chain_start_precision              0.674256
+             chain_start_recall              0.747236
+                 chain_start_f1              0.708873
+  correctly_matched_chain_count                  8381
+           exact_length_matches                  7456
+  conditional_exact_length_rate              0.889631
+                 edge_count_mae              0.123016
+  underestimated_matched_chains                   180
+   overestimated_matched_chains                   745
+
+P1-P4 POLICY METRICS
+---------------------
+   priority  sample_count  observed_positive_count  observed_propagation_rate_percent  mean_predicted_probability_percent
+P1_CRITICAL         31685                    27767                          87.634527                           90.205673
+    P2_HIGH         15501                     9896                          63.841043                           69.288116
+ P3_MONITOR         41430                     9026                          21.786145                           28.280794
+  P4_NORMAL        716510                     2349                           0.327839                            0.499867

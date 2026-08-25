@@ -1,0 +1,10 @@
+LOCKED TEST REPRODUCIBILITY MANIFEST
+====================================
+Command: .\.venv\Scripts\python.exe -m src.evaluation.run_locked_test_evaluation
+Git commit hash: 23ee67c18fa8a94683852a9e3f389ea08f794367
+Frozen threshold: tau=0.46
+Evaluation period: 2023-11-01 through 2023-12-31 (inclusive)
+Input files:
+- D:\AeroRecover-AI\data\processed\rotation_dataset_2023.csv
+- D:\AeroRecover-AI\data\processed\graph\tail_edges_2023.parquet
+- D:\AeroRecover-AI\models\xgboost_propagation_2023_time_split.pkl

@@ -22,11 +22,11 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.decision_support.assessment_service import build_decision_report
 from src.decision_support.contracts import FlightDecisionInput, FlightDecisionReport
 from src.explainability.local_shap import (
-    MODEL_VERSION,
     LocalShapExplanation,
     explain_validation_flight,
     load_model_pipeline,
 )
+from src.models.rotation_model_contract import MODEL_THRESHOLD, MODEL_VERSION
 from src.reporting.decision_report_pdf import build_decision_report_pdf
 from src.visualization.propagation_map import (
     build_itinerary,
@@ -35,8 +35,8 @@ from src.visualization.propagation_map import (
     match_itinerary_coordinates,
 )
 
-REPLAY_DATA_PATH = PROJECT_ROOT / "data" / "processed" / "decision_support_replay_validation.parquet"
-SCORED_EDGES_PATH = PROJECT_ROOT / "data" / "processed" / "graph" / "scored_tail_edges_2023_validation.parquet"
+REPLAY_DATA_PATH = PROJECT_ROOT / "data" / "processed" / "decision_support_replay_validation_full_enhanced.parquet"
+SCORED_EDGES_PATH = PROJECT_ROOT / "data" / "processed" / "graph" / "scored_tail_edges_2023_validation_full_enhanced.parquet"
 CHAIN_COLUMNS = [
     "SOURCE_FLIGHT_ID", "TARGET_FLIGHT_ID", "CONNECTION_AIRPORT",
     "PROPAGATION_PROBABILITY", "PROPAGATION_ALERT", "PLANNED_CONNECTION_MINUTES",
@@ -44,7 +44,7 @@ CHAIN_COLUMNS = [
 REPLAY_COLUMNS = [
     "START_FLIGHT_ID", "EDGE_COUNT", "FLIGHT_COUNT", "CUMULATIVE_PROBABILITY",
     "PROPAGATION_PROBABILITY", "PREV_ARR_DELAY", "TURN_BUFFER",
-    "PREV_DELAY_RATIO", "PLANNED_TURNAROUND",
+    "PREV_DELAY_RATIO", "PLANNED_TURNAROUND", "MODEL_VERSION", "MODEL_THRESHOLD",
 ]
 TOPOJSON_DIR = PROJECT_ROOT / "src" / "visualization" / "assets" / "topojson"
 
@@ -104,9 +104,14 @@ def load_replay_data() -> pd.DataFrame:
     if id_parts.shape[1] < 5:
         raise ValueError("Replay dataset contains malformed flight identifiers.")
     replay = replay.copy()
+    if set(replay["MODEL_VERSION"].dropna().unique()) != {MODEL_VERSION}:
+        raise ValueError("Replay dataset model version does not match the active model contract.")
+    if not replay["MODEL_THRESHOLD"].dropna().eq(MODEL_THRESHOLD).all():
+        raise ValueError("Replay dataset threshold does not match the active model contract.")
     replay["REPLAY_DATE"] = pd.to_datetime(id_parts[0], format="%Y%m%d", errors="coerce")
     replay["REPLAY_DATE_ONLY"] = replay["REPLAY_DATE"].dt.date
     replay["AIRLINE"] = id_parts[1]
+    replay["ROUTE"] = id_parts[3].astype(str) + " → " + id_parts[4].astype(str)
     return replay
 
 
@@ -421,6 +426,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+st.caption(f"Model: {MODEL_VERSION} · Frozen threshold: {MODEL_THRESHOLD:.2f}")
 
 try:
     replay_data = load_replay_data()
@@ -443,6 +449,11 @@ selected_airlines = st.sidebar.multiselect(
     placeholder="All airlines",
     help="Leave empty to include every airline.",
 )
+routes = sorted(replay_data["ROUTE"].dropna().unique().tolist())
+selected_routes = st.sidebar.multiselect(
+    "Route", routes, default=[], placeholder="All routes",
+    help="Leave empty to include every route.",
+)
 minimum_edges = st.sidebar.slider(
     "Minimum graph edges", int(replay_data["EDGE_COUNT"].min()),
     int(replay_data["EDGE_COUNT"].max()), max(2, int(replay_data["EDGE_COUNT"].min())),
@@ -459,6 +470,7 @@ except ValueError as exc:
 filtered_replays = replay_data.loc[
     replay_data["REPLAY_DATE_ONLY"].between(start_date, end_date)
     & (replay_data["AIRLINE"].isin(selected_airlines) if selected_airlines else True)
+    & (replay_data["ROUTE"].isin(selected_routes) if selected_routes else True)
     & (replay_data["EDGE_COUNT"] >= minimum_edges)
     & (replay_data["PROPAGATION_PROBABILITY"] >= minimum_probability)
 ].sort_values(["REPLAY_DATE", "START_FLIGHT_ID"])
@@ -471,8 +483,11 @@ if filtered_replays.empty:
     st.warning("No predicted-chain starts match the selected filters.")
     st.stop()
 
+selectbox_rows = filtered_replays.head(5_000)
+if len(filtered_replays) > len(selectbox_rows):
+    st.info("Showing the first 5,000 matches. Narrow the date, airline, route, or risk filters.")
 selected_flight_id = st.selectbox(
-    "Selected predicted-chain start", filtered_replays["START_FLIGHT_ID"].tolist(),
+    "Selected predicted-chain start", selectbox_rows["START_FLIGHT_ID"].tolist(),
     format_func=flight_label,
     help="Each option is a historical flight identified as the start of a predicted chain.",
 )

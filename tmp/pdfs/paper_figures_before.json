@@ -1,0 +1,62 @@
+[
+  {
+    "stem": "aerorecover_system_architecture",
+    "pdf_bytes": 63700,
+    "pdf_sha256": "d4869deb8cf8f71edf2739b1aa83864f5cb29bbc3b3b94c41dfd9be130b12993",
+    "png_bytes": 309110,
+    "png_sha256": "8b33b00c170e71b9bb3d0bf40656bfc8d8c525f938d3a99f07cb4f5bef5f156f",
+    "pixels": [
+      4482,
+      1620
+    ],
+    "dpi": [
+      399.9992,
+      399.9992
+    ]
+  },
+  {
+    "stem": "aircraft_rotation_propagation_example",
+    "pdf_bytes": 56095,
+    "pdf_sha256": "a4baeb133e7384ec66cf262b1a408b3aa68a89f85ed64ed777259da0efe856e0",
+    "png_bytes": 148145,
+    "png_sha256": "2250c12f22bee96fe03568513b5ee6ced9d149db8dba09f070ed67cba9de843a",
+    "pixels": [
+      3552,
+      1111
+    ],
+    "dpi": [
+      399.9992,
+      399.9992
+    ]
+  },
+  {
+    "stem": "predicted_propagation_exposure_network",
+    "pdf_bytes": 136044,
+    "pdf_sha256": "590cb3f52859bc97cf0c38eef54f992fc6361c97265753b480e4660ad4f67757",
+    "png_bytes": 1364961,
+    "png_sha256": "2122cccca37709a292a83e7412b24492c71a580fe33643baac34d0e357117ab7",
+    "pixels": [
+      4358,
+      2480
+    ],
+    "dpi": [
+      399.9992,
+      399.9992
+    ]
+  },
+  {
+    "stem": "propagation_exposure_network_paper",
+    "pdf_bytes": 125721,
+    "pdf_sha256": "0c7d50c8fced3e65914a239294c0bbf8330341718e5b84fe140abf88e8e31c34",
+    "png_bytes": 1914780,
+    "png_sha256": "7c84e4d1c68e829c9f6ebd22e9a73ac4dd4e2aab15319587254f6489899fc4ad",
+    "pixels": [
+      7374,
+      3997
+    ],
+    "dpi": [
+      599.9988,
+      599.9988
+    ]
+  }
+]

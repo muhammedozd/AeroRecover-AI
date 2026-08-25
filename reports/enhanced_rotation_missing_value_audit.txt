@@ -1,0 +1,16 @@
+PREV_DELAY_LEVEL Missing-Value Audit
+========================================
+Missing row count: 0
+PREV_ARR_DELAY missing among these rows: 0
+PREV_ARR_DELAY minimum: nan
+PREV_ARR_DELAY maximum: nan
+Values outside pd.cut bounds: 0
+Boundary-gap rows: 0
+Determined cause: all values fall outside pd.cut bounds [-1000, 1000]
+
+PREV_ARR_DELAY frequencies:
+Series([], )
+
+Safe recommendation (not applied): use open-ended outer bounds such as
+[-np.inf, -1, 14, 29, 59, np.inf], explicitly document boundary semantics,
+then rebuild and revalidate the rotation dataset in a separate change.

@@ -1,0 +1,54 @@
+Enhanced BTS Rotation Model Experiment
+======================================
+Dataset rows: 4,796,459
+Train rows: 3,159,311
+Validation rows: 832,022
+Test rows: 805,126
+Both models used identical row indices: yes
+Baseline validation-selected threshold: 0.46 (F1=0.815650)
+Enhanced validation-selected threshold: 0.47 (F1=0.833925)
+
+Missing values in generated/enhanced feature set (non-zero only):
+PREV_DELAY_LEVEL    135
+
+Validation metrics
+         THRESHOLD_SET  BASELINE_THRESHOLD  ENHANCED_THRESHOLD         METRIC      BASELINE      ENHANCED  ENHANCED_MINUS_BASELINE
+  PROJECT_DEFAULT_0.46            0.460000            0.460000        ROC_AUC      0.987960      0.991383                 0.003423
+  PROJECT_DEFAULT_0.46            0.460000            0.460000         PR_AUC      0.879769      0.920518                 0.040749
+  PROJECT_DEFAULT_0.46            0.460000            0.460000       LOG_LOSS      0.070224      0.059804                -0.010420
+  PROJECT_DEFAULT_0.46            0.460000            0.460000    BRIER_SCORE      0.020773      0.017932                -0.002841
+  PROJECT_DEFAULT_0.46            0.460000            0.460000      PRECISION      0.790681      0.808276                 0.017595
+  PROJECT_DEFAULT_0.46            0.460000            0.460000         RECALL      0.842247      0.861220                 0.018973
+  PROJECT_DEFAULT_0.46            0.460000            0.460000             F1      0.815650      0.833908                 0.018259
+  PROJECT_DEFAULT_0.46            0.460000            0.460000  TRUE_NEGATIVE 754800.000000 755980.000000              1180.000000
+  PROJECT_DEFAULT_0.46            0.460000            0.460000 FALSE_POSITIVE  14079.000000  12899.000000             -1180.000000
+  PROJECT_DEFAULT_0.46            0.460000            0.460000 FALSE_NEGATIVE   9961.000000   8763.000000             -1198.000000
+  PROJECT_DEFAULT_0.46            0.460000            0.460000  TRUE_POSITIVE  53182.000000  54380.000000              1198.000000
+VALIDATION_SELECTED_F1            0.460000            0.470000        ROC_AUC      0.987960      0.991383                 0.003423
+VALIDATION_SELECTED_F1            0.460000            0.470000         PR_AUC      0.879769      0.920518                 0.040749
+VALIDATION_SELECTED_F1            0.460000            0.470000       LOG_LOSS      0.070224      0.059804                -0.010420
+VALIDATION_SELECTED_F1            0.460000            0.470000    BRIER_SCORE      0.020773      0.017932                -0.002841
+VALIDATION_SELECTED_F1            0.460000            0.470000      PRECISION      0.790681      0.812679                 0.021998
+VALIDATION_SELECTED_F1            0.460000            0.470000         RECALL      0.842247      0.856310                 0.014063
+VALIDATION_SELECTED_F1            0.460000            0.470000             F1      0.815650      0.833925                 0.018275
+VALIDATION_SELECTED_F1            0.460000            0.470000  TRUE_NEGATIVE 754800.000000 756416.000000              1616.000000
+VALIDATION_SELECTED_F1            0.460000            0.470000 FALSE_POSITIVE  14079.000000  12463.000000             -1616.000000
+VALIDATION_SELECTED_F1            0.460000            0.470000 FALSE_NEGATIVE   9961.000000   9073.000000              -888.000000
+VALIDATION_SELECTED_F1            0.460000            0.470000  TRUE_POSITIVE  53182.000000  54070.000000               888.000000
+
+Test metrics
+       THRESHOLD_SET  BASELINE_THRESHOLD  ENHANCED_THRESHOLD         METRIC      BASELINE      ENHANCED  ENHANCED_MINUS_BASELINE
+LOCKED_VALIDATION_F1            0.460000            0.470000        ROC_AUC      0.988202      0.991358                 0.003155
+LOCKED_VALIDATION_F1            0.460000            0.470000         PR_AUC      0.854314      0.902954                 0.048641
+LOCKED_VALIDATION_F1            0.460000            0.470000       LOG_LOSS      0.063022      0.054257                -0.008766
+LOCKED_VALIDATION_F1            0.460000            0.470000    BRIER_SCORE      0.018851      0.016398                -0.002453
+LOCKED_VALIDATION_F1            0.460000            0.470000      PRECISION      0.750313      0.775056                 0.024743
+LOCKED_VALIDATION_F1            0.460000            0.470000         RECALL      0.842224      0.854399                 0.012174
+LOCKED_VALIDATION_F1            0.460000            0.470000             F1      0.793617      0.812796                 0.019179
+LOCKED_VALIDATION_F1            0.460000            0.470000  TRUE_NEGATIVE 742344.000000 743928.000000              1584.000000
+LOCKED_VALIDATION_F1            0.460000            0.470000 FALSE_POSITIVE  13744.000000  12160.000000             -1584.000000
+LOCKED_VALIDATION_F1            0.460000            0.470000 FALSE_NEGATIVE   7737.000000   7140.000000              -597.000000
+LOCKED_VALIDATION_F1            0.460000            0.470000  TRUE_POSITIVE  41301.000000  41898.000000               597.000000
+
+Interpretation: positive differences are better for ROC-AUC, PR-AUC, precision, recall, and F1;
+negative differences are better for log loss and Brier score. Accuracy is not used as a primary metric.

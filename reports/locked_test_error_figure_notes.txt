@@ -1,0 +1,19 @@
+LOCKED TEST ERROR FIGURE DISPLAY NOTES
+======================================
+The figure uses only original November-December 2023 locked-test records.
+Group definitions are unchanged: TP=41,301, FP=13,744, FN=7,737.
+No values were winsorized or moved to an axis boundary.
+Histograms were calculated from original in-range values only; observations outside
+the shared panel display limits were excluded from visualization as reported below.
+
+Previous-delay ratio display limits: [0.000000, 5.385087]
+Limit method: pooled TP/FP/FN 1st-99th percentile range.
+- TP: excluded 511 of 41,301 (1.237258%); lower tail 0 (0.000000%), upper tail 511 (1.237258%)
+- FP: excluded 117 of 13,744 (0.851281%); lower tail 0 (0.000000%), upper tail 117 (0.851281%)
+- FN: excluded 0 of 7,737 (0.000000%); lower tail 0 (0.000000%), upper tail 0 (0.000000%)
+
+Turnaround buffer (min) display limits: [-214.000000, 89.000000]
+Limit method: union of TP/FP/FN group-specific 1st-99th percentile ranges.
+- TP: excluded 410 of 41,301 (0.992712%); lower tail 410 (0.992712%), upper tail 0 (0.000000%)
+- FP: excluded 76 of 13,744 (0.552969%); lower tail 76 (0.552969%), upper tail 0 (0.000000%)
+- FN: excluded 77 of 7,737 (0.995218%); lower tail 0 (0.000000%), upper tail 77 (0.995218%)

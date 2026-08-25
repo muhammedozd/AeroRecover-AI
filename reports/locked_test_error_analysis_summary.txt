@@ -1,0 +1,38 @@
+LOCKED TEST POST-HOC ERROR ANALYSIS
+===================================
+Period: 2023-11-01 through 2023-12-31 (inclusive)
+Frozen model: xgboost_propagation_2023_time_split.pkl
+Fixed threshold: tau=0.46
+No retraining, tuning, feature changes, threshold changes, or policy changes were performed.
+All statements below are descriptive associations, not causal conclusions.
+
+Verified counts: TN=742,344, FP=13,744, FN=7,737, TP=41,301
+False-positive rate: 0.018178
+False-negative rate: 0.157776
+
+Most distinct FP vs TN feature differences
+------------------------------------------
+comparison            feature  left_mean  right_mean  mean_difference  standardized_mean_difference  absolute_standardized_difference
+  FP_vs_TN     PREV_ARR_DELAY  51.054715   -8.586211        59.640925                      1.456806                          1.456806
+  FP_vs_TN        TURN_BUFFER   1.549985   60.481847       -58.931861                     -1.455691                          1.455691
+  FP_vs_TN   PREV_DELAY_RATIO   1.001813    0.040035         0.961778                      0.821721                          0.821721
+  FP_vs_TN PLANNED_TURNAROUND  52.842622   63.131504       -10.288881                     -0.394247                          0.394247
+  FP_vs_TN  ROTATION_POSITION   3.932916    3.491256         0.441660                      0.308013                          0.308013
+
+Most distinct FN vs TP feature differences
+------------------------------------------
+comparison            feature  left_mean  right_mean  mean_difference  standardized_mean_difference  absolute_standardized_difference
+  FN_vs_TP        TURN_BUFFER  32.389944  -18.269945        50.659889                      1.288290                          1.288290
+  FN_vs_TP     PREV_ARR_DELAY  18.906036   70.472967       -51.566931                     -1.209677                          1.209677
+  FN_vs_TP   PREV_DELAY_RATIO   0.364232    1.406946        -1.042714                     -1.030864                          1.030864
+  FN_vs_TP  ROTATION_POSITION   3.830037    3.984964        -0.154927                     -0.104706                          0.104706
+  FN_vs_TP PLANNED_TURNAROUND  52.552798   52.289194         0.263604                      0.012446                          0.012446
+
+Key data-supported findings
+---------------------------
+- The false-positive rate was 0.018178 (13,744 / 756,088 observed negatives).
+- The false-negative rate was 0.157776 (7,737 / 49,038 observed positives).
+- FP cases were characterized by higher mean PREV_ARR_DELAY than TN cases (51.055 vs -8.586; standardized descriptive difference=1.457).
+- FP cases were characterized by lower mean TURN_BUFFER than TN cases (1.550 vs 60.482; standardized descriptive difference=-1.456).
+- FN cases were characterized by higher mean TURN_BUFFER than TP cases (32.390 vs -18.270; standardized descriptive difference=1.288).
+- FN cases were characterized by lower mean PREV_ARR_DELAY than TP cases (18.906 vs 70.473; standardized descriptive difference=-1.210).
